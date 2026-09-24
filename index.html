@@ -919,9 +919,12 @@
             : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
         }`;
 
-        // Color indicator pill
+        // Color indicator pill / Thumbnail
         const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
-        const previewColor = note.customBgUrl ? '#a855f7' : preset.color;
+        const previewColor = note.customBgUrl ? '' : preset.color;
+        let thumbnailContent = note.customBgUrl
+          ? `<img src="${note.customBgUrl}" class="w-full h-full object-cover">`
+          : preset.renderSvg();
 
         // Preview snippet
         let previewText = note.mode === 'tasks' && note.tasks?.length 
@@ -931,7 +934,7 @@
         itemEl.innerHTML = `
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <div class="flex items-center gap-2 overflow-hidden">
-              <span class="w-3 h-3 rounded-full flex-shrink-0 border border-black/20" style="background-color: ${previewColor}"></span>
+              <div class="w-6 h-6 rounded flex-shrink-0 overflow-hidden border border-zinc-700/50 relative" style="${previewColor ? `background-color: ${previewColor};` : ''}">${thumbnailContent}</div>
               <span class="text-xs font-semibold truncate ${note.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}">
                 Note #${index + 1}
               </span>
