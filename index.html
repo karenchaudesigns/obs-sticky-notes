@@ -892,7 +892,14 @@
 
       showEditorEmptyState(false);
 
-      appState.notes.forEach((note, index) => {
+      const sortedNotes = [...appState.notes].sort((a, b) => {
+        const indexA = appState.notes.indexOf(a);
+        const indexB = appState.notes.indexOf(b);
+        return (b.zIndex ?? indexB) - (a.zIndex ?? indexA);
+      });
+
+      sortedNotes.forEach((note, sortedIndex) => {
+        const index = appState.notes.indexOf(note);
         const isSelected = note.id === currentSelectedNoteId;
         const itemEl = document.createElement('div');
         itemEl.className = `p-3 rounded-xl border transition-all cursor-pointer ${
@@ -919,6 +926,12 @@
               </span>
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button data-action="move-up" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Bring Forward">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <button data-action="move-down" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Send Backward">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
               <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
                 <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
               </button>
@@ -931,6 +944,16 @@
         `;
 
         itemEl.addEventListener('click', (e) => {
+          if (e.target.closest('[data-action="move-up"]')) {
+            e.stopPropagation();
+            reorderNoteStack(note.id, 1);
+            return;
+          }
+          if (e.target.closest('[data-action="move-down"]')) {
+            e.stopPropagation();
+            reorderNoteStack(note.id, -1);
+            return;
+          }
           if (e.target.closest('[data-action="toggle-complete"]')) {
             e.stopPropagation();
             note.completed = !note.completed;
@@ -1494,6 +1517,40 @@
       document.getElementById('editor-btn-duplicate').addEventListener('click', () => {
         if (currentSelectedNoteId) duplicateNote(currentSelectedNoteId);
       });
+    }
+
+    function reorderNoteStack(noteId, direction) {
+      // 1. Sort ascending by current zIndex (fallback to array index)
+      appState.notes.sort((a, b) => {
+        const indexA = appState.notes.indexOf(a);
+        const indexB = appState.notes.indexOf(b);
+        return (a.zIndex ?? indexA) - (b.zIndex ?? indexB);
+      });
+
+      // 2. Normalize zIndex values to be contiguous integers starting from 1
+      appState.notes.forEach((n, i) => { n.zIndex = i + 1; });
+
+      // 3. Find index of target note
+      const index = appState.notes.findIndex(n => n.id === noteId);
+      if (index === -1) return;
+
+      // 4. Swap if possible
+      // direction: 1 = bring forward (higher zIndex, move right in array)
+      // direction: -1 = send backward (lower zIndex, move left in array)
+      const targetIndex = index + direction;
+
+      if (targetIndex >= 0 && targetIndex < appState.notes.length) {
+        // Swap elements in the array
+        const temp = appState.notes[index];
+        appState.notes[index] = appState.notes[targetIndex];
+        appState.notes[targetIndex] = temp;
+
+        // Reassign zIndex after swap
+        appState.notes.forEach((n, i) => { n.zIndex = i + 1; });
+
+        saveState(true);
+        renderApp(true);
+      }
     }
 
     function switchViewMode(newMode) {
