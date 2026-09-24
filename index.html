@@ -846,6 +846,24 @@
       element.addEventListener('pointerup', handlePointerUp);
       element.addEventListener('pointercancel', handlePointerUp);
 
+      // Mouse Wheel Handler for Resizing
+      element.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        // Zoom by 20px per scroll tick
+        const zoomStep = 20;
+        const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
+
+        note.width = Math.min(1000, Math.max(140, note.width + delta));
+        note.height = Math.min(1000, Math.max(140, note.height + delta));
+
+        element.style.width = `${note.width}px`;
+        element.style.height = `${note.height}px`;
+
+        saveState(true);
+        syncDockFormIfSelected(note.id);
+      }, { passive: false });
+
       if (resizeGrip) {
         resizeGrip.addEventListener('pointermove', handlePointerMove);
         resizeGrip.addEventListener('pointerup', handlePointerUp);
