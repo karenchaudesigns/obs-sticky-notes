@@ -313,6 +313,19 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Image Saturation</label>
+                <input type="range" id="editor-bg-saturation" min="0" max="200" step="1" class="w-full accent-indigo-500">
+                <span id="editor-bg-saturation-val" class="text-[11px] text-zinc-400 float-right">100%</span>
+              </div>
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Image Brightness</label>
+                <input type="range" id="editor-bg-brightness" min="0" max="200" step="1" class="w-full accent-indigo-500">
+                <span id="editor-bg-brightness-val" class="text-[11px] text-zinc-400 float-right">100%</span>
+              </div>
+            </div>
+
             <!-- Safe Area Inner Padding (Crucial for artwork frames & pins) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               <div>
@@ -351,7 +364,7 @@
 
               <div>
                 <label class="text-xs text-zinc-300 block mb-1">Font Size (px)</label>
-                <input type="range" id="editor-font-size" min="12" max="42" step="1" class="w-full accent-indigo-500">
+                <input type="range" id="editor-font-size" min="12" max="150" step="1" class="w-full accent-indigo-500">
                 <span id="editor-font-size-val" class="text-[11px] text-zinc-400 float-right">20px</span>
               </div>
 
@@ -364,8 +377,10 @@
               </div>
 
               <div>
-                <label class="text-xs text-zinc-300 block mb-1">Alignment</label>
-                <div class="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+                <label class="text-xs text-zinc-300 block mb-1">Format & Alignment</label>
+                <div class="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+                  <button data-format="bold" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
+                  <button data-format="italic" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
                   <button data-align="left" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
                   <button data-align="center" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
                   <button data-align="right" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
@@ -377,7 +392,7 @@
           <!-- Position, Dimensions & Tilt -->
           <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
             <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Canvas Dimensions &amp; Tilt</h3>
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
               <div>
                 <label class="text-xs text-zinc-400 block mb-1">Pos X (px)</label>
                 <input type="number" id="editor-pos-x" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
@@ -388,15 +403,21 @@
               </div>
               <div>
                 <label class="text-xs text-zinc-400 block mb-1">Width (px)</label>
-                <input type="number" id="editor-size-w" min="140" max="1000" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+                <input type="range" id="editor-size-w" min="140" max="1000" step="1" class="w-full accent-indigo-500">
+                <span id="editor-size-w-val" class="text-[11px] text-zinc-400 float-right">280px</span>
               </div>
               <div>
                 <label class="text-xs text-zinc-400 block mb-1">Height (px)</label>
-                <input type="number" id="editor-size-h" min="140" max="1000" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+                <input type="range" id="editor-size-h" min="140" max="1000" step="1" class="w-full accent-indigo-500">
+                <span id="editor-size-h-val" class="text-[11px] text-zinc-400 float-right">280px</span>
               </div>
               <div>
                 <label class="text-xs text-zinc-400 block mb-1">Rotation (°)</label>
                 <input type="number" id="editor-rotation" min="-45" max="45" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Text Rot (°)</label>
+                <input type="number" id="editor-text-rotation" min="-180" max="180" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
               </div>
             </div>
           </div>
@@ -574,12 +595,19 @@
           width: 280,
           height: 280,
           rotation: -2,
+          textRotation: 0,
           zIndex: 10,
           bgPresetId: 'classic-yellow',
           customBgUrl: '',
+        customBgSaturation: 100,
+        customBgBrightness: 100,
+          customBgSaturation: 100,
+          customBgBrightness: 100,
           fontFamily: 'font-handwriting',
           fontSize: 22,
           fontColor: '#1f2937',
+          isBold: false,
+          isItalic: false,
           textAlign: 'left',
           padding: { top: 24, right: 20, bottom: 20, left: 20 }
         }
@@ -692,7 +720,7 @@
         if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
           backgroundContent = `
             <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
-              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none'">
+              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-contain rounded-lg" style="filter: saturate(${note.customBgSaturation ?? 100}%) brightness(${note.customBgBrightness ?? 100}%);" onerror="this.style.display='none'">
             </div>
           `;
         } else {
@@ -736,7 +764,10 @@
                style="padding: ${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px; 
                       font-size: ${note.fontSize || 20}px; 
                       color: ${note.fontColor || '#1f2937'}; 
-                      text-align: ${note.textAlign || 'left'};">
+                      font-weight: ${note.isBold ? 'bold' : 'normal'};
+                      font-style: ${note.isItalic ? 'italic' : 'normal'};
+                      text-align: ${note.textAlign || 'left'};
+                      transform: rotate(${note.textRotation || 0}deg);">
             ${innerHtml}
           </div>
           <!-- Resize Grip Handle -->
@@ -1009,6 +1040,10 @@
 
       // Custom background URL / input
       document.getElementById('editor-custom-bg-url').value = note.customBgUrl || '';
+      document.getElementById('editor-bg-saturation').value = note.customBgSaturation ?? 100;
+      document.getElementById('editor-bg-saturation-val').textContent = `${note.customBgSaturation ?? 100}%`;
+      document.getElementById('editor-bg-brightness').value = note.customBgBrightness ?? 100;
+      document.getElementById('editor-bg-brightness-val').textContent = `${note.customBgBrightness ?? 100}%`;
 
       // Padding fields
       const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
@@ -1024,6 +1059,16 @@
       document.getElementById('editor-font-color').value = note.fontColor || '#1f2937';
       document.getElementById('editor-font-color-hex').textContent = note.fontColor || '#1f2937';
 
+      // Format buttons
+      document.querySelectorAll('.format-btn').forEach(btn => {
+        const format = btn.getAttribute('data-format');
+        if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
+          btn.classList.add('bg-indigo-600', 'text-white');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+        }
+      });
+
       // Alignment buttons
       document.querySelectorAll('.align-btn').forEach(btn => {
         if (btn.getAttribute('data-align') === (note.textAlign || 'left')) {
@@ -1037,8 +1082,11 @@
       document.getElementById('editor-pos-x').value = note.x;
       document.getElementById('editor-pos-y').value = note.y;
       document.getElementById('editor-size-w').value = note.width;
+      document.getElementById('editor-size-w-val').textContent = `${note.width}px`;
       document.getElementById('editor-size-h').value = note.height;
+      document.getElementById('editor-size-h-val').textContent = `${note.height}px`;
       document.getElementById('editor-rotation').value = note.rotation;
+      document.getElementById('editor-text-rotation').value = note.textRotation || 0;
     }
 
     function renderPresetSwatches(note) {
@@ -1130,8 +1178,16 @@
           const sizeH = document.getElementById('editor-size-h');
           if (posX) posX.value = note.x;
           if (posY) posY.value = note.y;
-          if (sizeW) sizeW.value = note.width;
-          if (sizeH) sizeH.value = note.height;
+          if (sizeW) {
+            sizeW.value = note.width;
+            const wVal = document.getElementById('editor-size-w-val');
+            if (wVal) wVal.textContent = `${note.width}px`;
+          }
+          if (sizeH) {
+            sizeH.value = note.height;
+            const hVal = document.getElementById('editor-size-h-val');
+            if (hVal) hVal.textContent = `${note.height}px`;
+          }
         }
       }
     }
@@ -1150,12 +1206,15 @@
         width: 260,
         height: 260,
         rotation: Math.floor(Math.random() * 7) - 3, // -3 to +3 degrees
+        textRotation: 0,
         zIndex: appState.notes.length + 1,
         bgPresetId: randomPreset.id,
         customBgUrl: '',
         fontFamily: 'font-handwriting',
         fontSize: 22,
         fontColor: randomPreset.textColor,
+        isBold: false,
+        isItalic: false,
         textAlign: 'left',
         padding: { top: 22, right: 20, bottom: 20, left: 20 }
       };
@@ -1392,6 +1451,25 @@
       }
 
       // Clear Custom Image Button
+      document.getElementById('editor-bg-saturation').addEventListener('input', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.customBgSaturation = parseInt(e.target.value, 10);
+          document.getElementById('editor-bg-saturation-val').textContent = `${note.customBgSaturation}%`;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+      document.getElementById('editor-bg-brightness').addEventListener('input', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.customBgBrightness = parseInt(e.target.value, 10);
+          document.getElementById('editor-bg-brightness-val').textContent = `${note.customBgBrightness}%`;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+
       document.getElementById('editor-custom-bg-clear').addEventListener('click', () => {
         const note = appState.notes.find(n => n.id === currentSelectedNoteId);
         if (note) {
@@ -1452,6 +1530,21 @@
         }
       });
 
+      // Format buttons
+      document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const format = btn.getAttribute('data-format');
+          const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+          if (note) {
+            if (format === 'bold') note.isBold = !note.isBold;
+            if (format === 'italic') note.isItalic = !note.isItalic;
+            saveState(true);
+            renderOverlayCanvas();
+            populateEditorForm();
+          }
+        });
+      });
+
       // Alignment buttons
       document.querySelectorAll('.align-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1474,6 +1567,10 @@
             const note = appState.notes.find(n => n.id === currentSelectedNoteId);
             if (note) {
               note[propKey] = parseInt(e.target.value, 10) || 0;
+              const valEl = document.getElementById(id + '-val');
+              if (valEl) {
+                valEl.textContent = `${note[propKey]}${id.includes('rotation') ? '°' : 'px'}`;
+              }
               saveState(true);
               renderOverlayCanvas();
             }
@@ -1486,6 +1583,7 @@
       bindNumericInput('editor-size-w', 'width');
       bindNumericInput('editor-size-h', 'height');
       bindNumericInput('editor-rotation', 'rotation');
+      bindNumericInput('editor-text-rotation', 'textRotation');
 
       // Delete & Duplicate buttons in editor footer
       document.getElementById('editor-btn-delete').addEventListener('click', () => {
