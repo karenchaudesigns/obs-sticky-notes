@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OBS Sticky Notes Overlay & Controller</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            handwriting: ['Caveat', 'cursive'],
+            kalam: ['Kalam', 'cursive'],
+            patrick: ['"Patrick Hand"', 'cursive'],
+            space: ['"Space Grotesk"', 'sans-serif'],
+          },
+          colors: {
+            obs: {
+              bg: '#18181b',
+              panel: '#27272a',
+              card: '#3f3f46',
+              accent: '#6366f1',
+              accentHover: '#4f46e5'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Reset & Transparent Canvas for OBS Overlay */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* In overlay mode, body must be completely transparent */
+    body.mode-overlay {
+      background: transparent !important;
+    }
+
+    body.mode-dock {
+      background: #18181b;
+      color: #f4f4f5;
+      overflow-y: auto;
+      user-select: auto;
+      -webkit-user-select: auto;
+    }
+
+    /* Realistic Sticky Note Dropshadows & Animations */
+    .note-shadow {
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.25)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+    }
+
+    .note-shadow-hover:hover {
+      filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.32)) drop-shadow(0 8px 10px rgba(0, 0, 0, 0.2));
+    }
+
+    /* Paper peel illusion */
+    .paper-curl {
+      position: relative;
+    }
+    .paper-curl::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 0 16px 16px;
+      border-color: transparent transparent rgba(0, 0, 0, 0.18) transparent;
+      pointer-events: none;
+    }
+
+    /* Custom scrollbars for dock editor */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1f1f23;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+
+    /* Checkbox animated completion */
+    .task-checkbox:checked + label span.task-text {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+
+    /* Interactive overlay mode cursor handles */
+    .cursor-grab { cursor: grab; }
+    .cursor-grab:active { cursor: grabbing; }
+
+    /* Custom resize handle */
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 20px;
+      height: 20px;
+      cursor: nwse-resize;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .note-container:hover .resize-handle,
+    .note-container.is-active .resize-handle {
+      opacity: 0.8;
+    }
+
+    /* Toast notification popups */
+    #toast-notification {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+  </style>
+</head>
+<body class="mode-overlay font-sans">
+
+  <!-- TOAST NOTIFICATION CONTAINER (Custom non-alert notifications) -->
+  <div id="toast-notification" class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-zinc-800 border border-zinc-700 text-zinc-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
+      <div id="toast-icon" class="text-emerald-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div id="toast-message">Settings saved successfully</div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- OVERLAY VIEW: Rendered on Stream Scene or OBS Interact Window              -->
+  <!-- ========================================================================= -->
+  <div id="overlay-container" class="relative w-screen h-screen overflow-hidden select-none pointer-events-auto">
+    <!-- Sticky Notes DOM Mount -->
+    <div id="notes-canvas" class="relative w-full h-full"></div>
+
+    <!-- Quick Overlay Mode Switcher Bar (Hover-activated in top-right or visible in Interact) -->
+    <div id="overlay-quickbar" class="absolute top-3 right-3 flex items-center gap-2 bg-zinc-900/80 backdrop-blur border border-zinc-700/70 rounded-full px-3 py-1.5 shadow-lg opacity-20 hover:opacity-100 transition-opacity duration-200 z-50">
+      <span class="text-[11px] font-semibold tracking-wide uppercase text-zinc-400">OBS Sticky Notes</span>
+      <button id="btn-open-dock-view" title="Open Dock View" class="px-2.5 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-full flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+        <span>Dock / Manager</span>
+      </button>
+      <button id="btn-quick-add" title="Quick Add Note" class="p-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-full transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- DOCK VIEW: Rendered when mode=dock or via mode switcher                    -->
+  <!-- ========================================================================= -->
+  <div id="dock-container" class="hidden min-h-screen w-full flex flex-col bg-zinc-950 text-zinc-200">
+    
+    <!-- Dock Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between shadow-md">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-indigo-500/20 shadow-lg text-sm">
+          📌
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-white tracking-tight leading-tight">Sticky Notes Manager</h1>
+          <p class="text-[10px] text-zinc-400">OBS Control Dock & Canvas Sync</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button id="dock-btn-add-note" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Note
+        </button>
+        <button id="dock-btn-switch-overlay" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 border border-zinc-700 transition-colors" title="Preview Overlay Canvas">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          Overlay
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area: Left list & Right Editor -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+      
+      <!-- Notes Sidebar / Accordion List -->
+      <section class="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/60 flex flex-col">
+        <!-- Action Toolbar -->
+        <div class="p-3 border-b border-zinc-800/80 flex items-center justify-between gap-2 text-xs">
+          <span id="dock-notes-count" class="text-zinc-400 font-medium">0 active notes</span>
+          <div class="flex items-center gap-1">
+            <button id="dock-btn-clear-done" class="px-2 py-1 text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors" title="Delete completed tasks">
+              Clear Done
+            </button>
+            <button id="dock-btn-export-json" class="px-2 py-1 text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors" title="Save backup to local file">
+              Export
+            </button>
+            <label class="px-2 py-1 text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded cursor-pointer transition-colors" title="Import from backup file">
+              Import
+              <input type="file" id="dock-input-import-json" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- Notes Scrollable List -->
+        <div id="dock-notes-list" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- OBS Setup Quick Instruction Footer -->
+        <div class="p-3 bg-zinc-900 border-t border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+          <p class="font-semibold text-zinc-300 flex items-center gap-1">
+            <span>💡 OBS Integration Tip:</span>
+          </p>
+          <p>Add this URL as a <strong class="text-zinc-200">Browser Source</strong> (overlay) &amp; as a <strong class="text-zinc-200">Custom Browser Dock</strong> with <code class="text-indigo-400">?mode=dock</code>.</p>
+        </div>
+      </section>
+
+      <!-- Active Note Detailed Settings & Editor -->
+      <section id="dock-editor-panel" class="flex-1 overflow-y-auto p-4 md:p-6 bg-zinc-950 space-y-6">
+        <div id="editor-empty-state" class="h-full flex flex-col items-center justify-center text-center p-8 text-zinc-500">
+          <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-2xl mb-3">📝</div>
+          <h3 class="text-base font-semibold text-zinc-300">No Note Selected</h3>
+          <p class="text-xs max-w-sm mt-1 text-zinc-500">Select a note from the left sidebar to edit content, style backgrounds, or adjust positioning.</p>
+          <button id="dock-btn-create-first" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">
+            Create Sticky Note
+          </button>
+        </div>
+
+        <div id="editor-active-content" class="hidden space-y-6 max-w-3xl mx-auto">
+          
+          <!-- Note Content & Tasks Box -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold uppercase tracking-wider text-zinc-400">Content &amp; Text</label>
+              <div class="flex items-center gap-2">
+                <button id="editor-mode-text" class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-indigo-600 text-white">Paragraph</button>
+                <button id="editor-mode-tasks" class="px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-zinc-800 text-zinc-400 hover:text-zinc-200">Checklist</button>
+              </div>
+            </div>
+
+            <!-- Single Multiline Textarea -->
+            <div id="editor-textarea-wrapper">
+              <textarea id="editor-note-text" rows="4" placeholder="Write stream goals, sub reminders, or notes here..." class="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <!-- Checklist Item Builder -->
+            <div id="editor-tasks-wrapper" class="hidden space-y-2">
+              <div id="editor-tasks-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                <!-- Dynamic Task Items -->
+              </div>
+              <div class="flex gap-2 pt-1">
+                <input type="text" id="editor-new-task-input" placeholder="Add a new checklist item..." class="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button id="editor-add-task-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-semibold">Add Item</button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="editor-note-completed" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-zinc-800 border-zinc-700">
+                <span class="text-xs text-zinc-300 font-medium">Mark entire note as completed</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Background & Artwork Customization -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Background &amp; Custom Artwork</h3>
+              <span class="text-[11px] text-zinc-500">Select preset or upload graphic</span>
+            </div>
+
+            <!-- Generic Presets Swatches -->
+            <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5" id="editor-bg-presets">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Custom Art Uploader / Direct URL -->
+            <div class="pt-3 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-300 mb-1.5">Custom Image Upload (Local Artwork)</label>
+                <label class="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-3 cursor-pointer bg-zinc-950/40 text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Choose PNG / SVG / JPG</span>
+                  <input type="file" id="editor-custom-bg-file" accept="image/*" class="hidden">
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-zinc-300 mb-1.5">Custom Image URL or Path</label>
+                <div class="flex gap-1.5">
+                  <input type="text" id="editor-custom-bg-url" placeholder="assets/backgrounds/my-art.png" class="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <button id="editor-custom-bg-clear" class="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs" title="Clear image">Clear</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Safe Area Inner Padding (Crucial for artwork frames & pins) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Padding Top (px)</label>
+                <input type="number" id="editor-pad-top" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Padding Bottom (px)</label>
+                <input type="number" id="editor-pad-bottom" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Padding Left (px)</label>
+                <input type="number" id="editor-pad-left" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Padding Right (px)</label>
+                <input type="number" id="editor-pad-right" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+            </div>
+          </div>
+
+          <!-- Typography & Text Placement -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Family</label>
+                <select id="editor-font-family" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+                  <option value="font-handwriting">Caveat (Handwritten)</option>
+                  <option value="font-kalam">Kalam (Casual)</option>
+                  <option value="font-patrick">Patrick Hand</option>
+                  <option value="font-sans">Inter (Modern Clean)</option>
+                  <option value="font-space">Space Grotesk (Tech)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Size (px)</label>
+                <input type="range" id="editor-font-size" min="12" max="42" step="1" class="w-full accent-indigo-500">
+                <span id="editor-font-size-val" class="text-[11px] text-zinc-400 float-right">20px</span>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Color</label>
+                <div class="flex items-center gap-2">
+                  <input type="color" id="editor-font-color" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent">
+                  <span id="editor-font-color-hex" class="text-xs font-mono text-zinc-400">#2d3748</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Alignment</label>
+                <div class="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+                  <button data-align="left" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
+                  <button data-align="center" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
+                  <button data-align="right" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Position, Dimensions & Tilt -->
+          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Canvas Dimensions &amp; Tilt</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Pos X (px)</label>
+                <input type="number" id="editor-pos-x" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Pos Y (px)</label>
+                <input type="number" id="editor-pos-y" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Width (px)</label>
+                <input type="number" id="editor-size-w" min="140" max="1000" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Height (px)</label>
+                <input type="number" id="editor-size-h" min="140" max="1000" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400 block mb-1">Rotation (°)</label>
+                <input type="number" id="editor-rotation" min="-45" max="45" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger zone actions -->
+          <div class="flex items-center justify-between pt-2">
+            <button id="editor-btn-delete" class="px-3.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              Delete Sticky Note
+            </button>
+            <button id="editor-btn-duplicate" class="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              Duplicate
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    /**
+     * OBS Sticky Notes - Core State Engine
+     * Handles local storage, real-time BroadcastChannel synchronization, 
+     * drag/drop/resize on canvas, custom background art, and dual Dock/Overlay routing.
+     */
+
+    const STORAGE_KEY = 'obs_sticky_notes_data_v1';
+    const BROADCAST_CHANNEL_NAME = 'obs_sticky_notes_sync';
+
+    // BroadcastChannel allows zero-latency messaging between the OBS Dock and the OBS Browser Source
+    const syncChannel = ('BroadcastChannel' in window) ? new BroadcastChannel(BROADCAST_CHANNEL_NAME) : null;
+
+    // Built-in Generic SVG Background Presets
+    const BACKGROUND_PRESETS = [
+      {
+        id: 'classic-yellow',
+        name: 'Classic Post-it Yellow',
+        color: '#FFF740',
+        textColor: '#1f2937',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fffb7a"/>
+                <stop offset="100%" stop-color="#fae738"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" rx="3" fill="url(#grad-yellow)"/>
+            <!-- Top tape strip effect -->
+            <path d="M 30 0 L 70 0 L 68 8 L 32 8 Z" fill="rgba(255, 255, 255, 0.45)"/>
+          </svg>
+        `
+      },
+      {
+        id: 'soft-pink',
+        name: 'Soft Pink Blossom',
+        color: '#FF7EB9',
+        textColor: '#371526',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-pink" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ff94c7"/>
+                <stop offset="100%" stop-color="#f86ea9"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" rx="3" fill="url(#grad-pink)"/>
+          </svg>
+        `
+      },
+      {
+        id: 'pastel-cyan',
+        name: 'Pastel Aqua Cyan',
+        color: '#7AFCFF',
+        textColor: '#0f2935',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#99f8ff"/>
+                <stop offset="100%" stop-color="#64f3fa"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" rx="3" fill="url(#grad-cyan)"/>
+          </svg>
+        `
+      },
+      {
+        id: 'mint-green',
+        name: 'Mint Fresh',
+        color: '#6bf178',
+        textColor: '#0e3816',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="3" fill="#6bf178"/>
+          </svg>
+        `
+      },
+      {
+        id: 'warm-kraft',
+        name: 'Kraft Cardboard',
+        color: '#d4a373',
+        textColor: '#291b0c',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-kraft" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ddaf81"/>
+                <stop offset="100%" stop-color="#c99764"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" rx="2" fill="url(#grad-kraft)"/>
+            <!-- Push pin at center top -->
+            <circle cx="50" cy="8" r="4.5" fill="#e11d48"/>
+            <circle cx="48.5" cy="6.5" r="1.5" fill="#fff" opacity="0.6"/>
+          </svg>
+        `
+      },
+      {
+        id: 'dark-obsidian',
+        name: 'Obsidian Streamer',
+        color: '#1e2029',
+        textColor: '#f3f4f6',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="4" fill="#1e2029" stroke="#374151" stroke-width="1.5"/>
+            <path d="M 0 0 L 100 0 L 100 6 L 0 6 Z" fill="#6366f1"/>
+          </svg>
+        `
+      },
+      {
+        id: 'lavender-purple',
+        name: 'Lavender Cozy',
+        color: '#c4b5fd',
+        textColor: '#2e1065',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="3" fill="#c4b5fd"/>
+          </svg>
+        `
+      },
+      {
+        id: 'clean-white',
+        name: 'Minimal White Index',
+        color: '#ffffff',
+        textColor: '#18181b',
+        renderSvg: () => `
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="2" fill="#ffffff" stroke="#e4e4e7" stroke-width="1"/>
+            <line x1="0" y1="12" x2="100" y2="12" stroke="#f43f5e" stroke-width="1"/>
+          </svg>
+        `
+      }
+    ];
+
+    // Default Seed Data
+    const DEFAULT_DATA = {
+      version: '1.0',
+      notes: [
+        {
+          id: 'note-1',
+          mode: 'text', // 'text' | 'tasks'
+          text: "✨ Stream Goals:\n- Warm up sculpt (30m)\n- Retopology tutorial\n- Raid friendly streamer!",
+          tasks: [
+            { id: 't1', text: 'Warm up sculpt (30m)', done: true },
+            { id: 't2', text: 'Retopology tutorial', done: false },
+            { id: 't3', text: 'Raid friendly streamer!', done: false }
+          ],
+          completed: false,
+          x: 60,
+          y: 60,
+          width: 280,
+          height: 280,
+          rotation: -2,
+          zIndex: 10,
+          bgPresetId: 'classic-yellow',
+          customBgUrl: '',
+          fontFamily: 'font-handwriting',
+          fontSize: 22,
+          fontColor: '#1f2937',
+          textAlign: 'left',
+          padding: { top: 24, right: 20, bottom: 20, left: 20 }
+        }
+      ]
+    };
+
+    // Application Global State
+    let appState = loadStateFromStorage();
+    let currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
+    let currentViewMode = 'overlay'; // 'overlay' or 'dock'
+
+    // Determine Mode via URL Query Parameters (?mode=dock or ?mode=overlay)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'dock') {
+      currentViewMode = 'dock';
+    }
+
+    function loadStateFromStorage() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.notes)) {
+            return parsed;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load sticky notes from localStorage:', err);
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveState(broadcast = true) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        if (broadcast && syncChannel) {
+          syncChannel.postMessage({ type: 'STATE_UPDATED', data: appState });
+        }
+      } catch (err) {
+        console.error('Storage write error:', err);
+        showToast('Error saving data: Local storage quota exceeded', 'error');
+      }
+    }
+
+    // BroadcastChannel Listener for Inter-Window Sync
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'STATE_UPDATED') {
+          appState = event.data.data;
+          renderApp(false);
+        }
+      };
+    }
+
+    // Fallback cross-tab storage event
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          appState = JSON.parse(e.newValue);
+          renderApp(false);
+        } catch (err) {}
+      }
+    });
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast-notification');
+      const msgEl = document.getElementById('toast-message');
+      const iconEl = document.getElementById('toast-icon');
+
+      if (!toast || !msgEl) return;
+
+      msgEl.textContent = message;
+      if (type === 'error') {
+        iconEl.className = 'text-rose-400';
+        iconEl.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+      } else {
+        iconEl.className = 'text-emerald-400';
+        iconEl.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+      }
+
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(window.__toastTimeout);
+      window.__toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-16', 'opacity-0');
+      }, 3000);
+    }
+
+    function renderOverlayCanvas() {
+      const canvas = document.getElementById('notes-canvas');
+      if (!canvas) return;
+
+      canvas.innerHTML = '';
+
+      appState.notes.forEach((note) => {
+        const noteEl = document.createElement('div');
+        noteEl.id = `canvas-note-${note.id}`;
+        noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
+        noteEl.style.left = `${note.x}px`;
+        noteEl.style.top = `${note.y}px`;
+        noteEl.style.width = `${note.width}px`;
+        noteEl.style.height = `${note.height}px`;
+        noteEl.style.transform = `rotate(${note.rotation}deg)`;
+        noteEl.style.zIndex = note.zIndex || 1;
+
+        // Background Layer: either custom uploaded graphic or SVG preset
+        let backgroundContent = '';
+        if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
+          backgroundContent = `
+            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
+              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none'">
+            </div>
+          `;
+        } else {
+          const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+          backgroundContent = `
+            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
+              ${preset.renderSvg()}
+            </div>
+          `;
+        }
+
+        // Content Layer (Tasks or Freeform Text)
+        let innerHtml = '';
+        if (note.mode === 'tasks' && Array.isArray(note.tasks) && note.tasks.length > 0) {
+          const tasksItemsHtml = note.tasks.map(t => `
+            <div class="flex items-start gap-2 mb-1.5 pointer-events-auto">
+              <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
+              <label class="cursor-pointer select-none">
+                <span class="task-text ${t.done ? 'line-through opacity-50' : ''}">${escapeHtml(t.text)}</span>
+              </label>
+            </div>
+          `).join('');
+
+          innerHtml = `<div class="tasks-container w-full h-full overflow-y-auto">${tasksItemsHtml}</div>`;
+        } else {
+          // Multiline text formatted with line breaks
+          const formattedText = escapeHtml(note.text || '').replace(/\n/g, '<br>');
+          innerHtml = `
+            <div class="w-full h-full overflow-hidden ${note.completed ? 'line-through opacity-50' : ''}">
+              ${formattedText || '<span class="opacity-40 italic">Empty note...</span>'}
+            </div>
+          `;
+        }
+
+        // Safe Area Padding from Note Style
+        const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
+
+        noteEl.innerHTML = `
+          ${backgroundContent}
+          <div class="relative z-10 w-full h-full flex flex-col ${note.fontFamily || 'font-handwriting'}" 
+               style="padding: ${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px; 
+                      font-size: ${note.fontSize || 20}px; 
+                      color: ${note.fontColor || '#1f2937'}; 
+                      text-align: ${note.textAlign || 'left'};">
+            ${innerHtml}
+          </div>
+          <!-- Resize Grip Handle -->
+          <div class="resize-handle" data-note-id="${note.id}">
+            <svg class="w-3.5 h-3.5 text-zinc-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22 22H20V20H22V22ZM22 16H20V18H22V16ZM18 20H16V22H18V20ZM22 12H20V14H22V12ZM14 20H12V22H14V20ZM18 16H16V18H18V16Z"/></svg>
+          </div>
+        `;
+
+        // Attach dragging & resizing event listeners for OBS Interact
+        attachNoteInteractions(noteEl, note);
+
+        // Checkbox interaction delegation
+        noteEl.querySelectorAll('.task-checkbox').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const noteId = e.target.getAttribute('data-note-id');
+            const taskId = e.target.getAttribute('data-task-id');
+            toggleTaskDone(noteId, taskId, e.target.checked);
+          });
+        });
+
+        canvas.appendChild(noteEl);
+      });
+    }
+
+    function attachNoteInteractions(element, note) {
+      let isDragging = false;
+      let isResizing = false;
+      let startX = 0;
+      let startY = 0;
+      let initialLeft = 0;
+      let initialTop = 0;
+      let initialWidth = 0;
+      let initialHeight = 0;
+
+      const resizeGrip = element.querySelector('.resize-handle');
+
+      // Pointer down for Dragging
+      element.addEventListener('pointerdown', (e) => {
+        // If clicking a checkbox, link, or resize grip, do not drag note
+        if (e.target.closest('input') || e.target.closest('.resize-handle')) return;
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = note.x;
+        initialTop = note.y;
+
+        // Bring to front
+        const maxZ = Math.max(0, ...appState.notes.map(n => n.zIndex || 1));
+        note.zIndex = maxZ + 1;
+        element.style.zIndex = note.zIndex;
+
+        element.setPointerCapture(e.pointerId);
+        element.classList.add('cursor-grabbing');
+        e.preventDefault();
+      });
+
+      // Pointer down for Resizing
+      if (resizeGrip) {
+        resizeGrip.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          isResizing = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          initialWidth = note.width;
+          initialHeight = note.height;
+          resizeGrip.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+      }
+
+      // Pointer Move Handler
+      const handlePointerMove = (e) => {
+        if (isDragging) {
+          const deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+          note.x = Math.max(0, Math.round(initialLeft + deltaX));
+          note.y = Math.max(0, Math.round(initialTop + deltaY));
+          element.style.left = `${note.x}px`;
+          element.style.top = `${note.y}px`;
+        } else if (isResizing) {
+          const deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+          note.width = Math.max(140, Math.round(initialWidth + deltaX));
+          note.height = Math.max(140, Math.round(initialHeight + deltaY));
+          element.style.width = `${note.width}px`;
+          element.style.height = `${note.height}px`;
+        }
+      };
+
+      // Pointer Up Handler
+      const handlePointerUp = (e) => {
+        if (isDragging || isResizing) {
+          isDragging = false;
+          isResizing = false;
+          element.classList.remove('cursor-grabbing');
+          try {
+            element.releasePointerCapture(e.pointerId);
+          } catch(err) {}
+          saveState(true);
+          syncDockFormIfSelected(note.id);
+        }
+      };
+
+      element.addEventListener('pointermove', handlePointerMove);
+      element.addEventListener('pointerup', handlePointerUp);
+      element.addEventListener('pointercancel', handlePointerUp);
+
+      if (resizeGrip) {
+        resizeGrip.addEventListener('pointermove', handlePointerMove);
+        resizeGrip.addEventListener('pointerup', handlePointerUp);
+        resizeGrip.addEventListener('pointercancel', handlePointerUp);
+      }
+    }
+
+    function toggleTaskDone(noteId, taskId, isDone) {
+      const note = appState.notes.find(n => n.id === noteId);
+      if (!note || !note.tasks) return;
+      const task = note.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.done = isDone;
+        // Check if all tasks are completed
+        const allDone = note.tasks.every(t => t.done);
+        if (allDone) {
+          note.completed = true;
+        } else {
+          note.completed = false;
+        }
+        saveState(true);
+        renderApp(false);
+      }
+    }
+
+    function renderDockView() {
+      const listEl = document.getElementById('dock-notes-list');
+      const countEl = document.getElementById('dock-notes-count');
+      if (!listEl) return;
+
+      listEl.innerHTML = '';
+      countEl.textContent = `${appState.notes.length} note${appState.notes.length === 1 ? '' : 's'}`;
+
+      if (appState.notes.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-center py-8 text-zinc-600 text-xs">
+            <p>No active notes.</p>
+            <p class="mt-1 text-zinc-500">Click "New Note" to create one.</p>
+          </div>
+        `;
+        showEditorEmptyState(true);
+        return;
+      }
+
+      showEditorEmptyState(false);
+
+      appState.notes.forEach((note, index) => {
+        const isSelected = note.id === currentSelectedNoteId;
+        const itemEl = document.createElement('div');
+        itemEl.className = `p-3 rounded-xl border transition-all cursor-pointer ${
+          isSelected 
+            ? 'bg-zinc-800/90 border-indigo-500 shadow-md ring-1 ring-indigo-500/40' 
+            : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
+        }`;
+
+        // Color indicator pill
+        const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+        const previewColor = note.customBgUrl ? '#a855f7' : preset.color;
+
+        // Preview snippet
+        let previewText = note.mode === 'tasks' && note.tasks?.length 
+          ? note.tasks.map(t => `${t.done ? '✓' : '○'} ${t.text}`).join(' · ')
+          : (note.text || 'Untitled note');
+
+        itemEl.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="w-3 h-3 rounded-full flex-shrink-0 border border-black/20" style="background-color: ${previewColor}"></span>
+              <span class="text-xs font-semibold truncate ${note.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}">
+                Note #${index + 1}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
+                <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              </button>
+              <button data-action="delete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-rose-400" title="Delete note">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <p class="text-[11px] text-zinc-400 truncate line-clamp-1">${escapeHtml(previewText)}</p>
+        `;
+
+        itemEl.addEventListener('click', (e) => {
+          if (e.target.closest('[data-action="toggle-complete"]')) {
+            e.stopPropagation();
+            note.completed = !note.completed;
+            saveState(true);
+            renderApp(false);
+            return;
+          }
+          if (e.target.closest('[data-action="delete"]')) {
+            e.stopPropagation();
+            deleteNote(note.id);
+            return;
+          }
+          currentSelectedNoteId = note.id;
+          renderDockView();
+          populateEditorForm();
+        });
+
+        listEl.appendChild(itemEl);
+      });
+
+      populateEditorForm();
+    }
+
+    function showEditorEmptyState(isEmpty) {
+      const emptyEl = document.getElementById('editor-empty-state');
+      const contentEl = document.getElementById('editor-active-content');
+      if (!emptyEl || !contentEl) return;
+
+      if (isEmpty) {
+        emptyEl.classList.remove('hidden');
+        contentEl.classList.add('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+      }
+    }
+
+    function populateEditorForm() {
+      const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+      if (!note) {
+        if (appState.notes.length > 0) {
+          currentSelectedNoteId = appState.notes[0].id;
+          populateEditorForm();
+        } else {
+          showEditorEmptyState(true);
+        }
+        return;
+      }
+
+      showEditorEmptyState(false);
+
+      // Mode toggling (Text vs Tasks)
+      const btnText = document.getElementById('editor-mode-text');
+      const btnTasks = document.getElementById('editor-mode-tasks');
+      const textWrap = document.getElementById('editor-textarea-wrapper');
+      const tasksWrap = document.getElementById('editor-tasks-wrapper');
+
+      if (note.mode === 'tasks') {
+        btnTasks.className = 'px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-indigo-600 text-white';
+        btnText.className = 'px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-zinc-800 text-zinc-400 hover:text-zinc-200';
+        textWrap.classList.add('hidden');
+        tasksWrap.classList.remove('hidden');
+        renderTasksList(note);
+      } else {
+        btnText.className = 'px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-indigo-600 text-white';
+        btnTasks.className = 'px-2.5 py-1 text-xs rounded-md font-medium transition-colors bg-zinc-800 text-zinc-400 hover:text-zinc-200';
+        textWrap.classList.remove('hidden');
+        tasksWrap.classList.add('hidden');
+        document.getElementById('editor-note-text').value = note.text || '';
+      }
+
+      document.getElementById('editor-note-completed').checked = !!note.completed;
+
+      // Render preset swatches
+      renderPresetSwatches(note);
+
+      // Custom background URL / input
+      document.getElementById('editor-custom-bg-url').value = note.customBgUrl || '';
+
+      // Padding fields
+      const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
+      document.getElementById('editor-pad-top').value = pad.top;
+      document.getElementById('editor-pad-bottom').value = pad.bottom;
+      document.getElementById('editor-pad-left').value = pad.left;
+      document.getElementById('editor-pad-right').value = pad.right;
+
+      // Typography
+      document.getElementById('editor-font-family').value = note.fontFamily || 'font-handwriting';
+      document.getElementById('editor-font-size').value = note.fontSize || 20;
+      document.getElementById('editor-font-size-val').textContent = `${note.fontSize || 20}px`;
+      document.getElementById('editor-font-color').value = note.fontColor || '#1f2937';
+      document.getElementById('editor-font-color-hex').textContent = note.fontColor || '#1f2937';
+
+      // Alignment buttons
+      document.querySelectorAll('.align-btn').forEach(btn => {
+        if (btn.getAttribute('data-align') === (note.textAlign || 'left')) {
+          btn.classList.add('bg-indigo-600', 'text-white');
+        } else {
+          btn.classList.remove('bg-indigo-600', 'text-white');
+        }
+      });
+
+      // Canvas dimensions
+      document.getElementById('editor-pos-x').value = note.x;
+      document.getElementById('editor-pos-y').value = note.y;
+      document.getElementById('editor-size-w').value = note.width;
+      document.getElementById('editor-size-h').value = note.height;
+      document.getElementById('editor-rotation').value = note.rotation;
+    }
+
+    function renderPresetSwatches(note) {
+      const container = document.getElementById('editor-bg-presets');
+      if (!container) return;
+
+      container.innerHTML = '';
+      BACKGROUND_PRESETS.forEach(preset => {
+        const isSelected = !note.customBgUrl && note.bgPresetId === preset.id;
+        const swatch = document.createElement('button');
+        swatch.className = `h-10 rounded-lg border flex items-center justify-center relative transition-transform ${
+          isSelected ? 'ring-2 ring-indigo-500 scale-105 border-white' : 'border-zinc-700 hover:scale-102'
+        }`;
+        swatch.style.backgroundColor = preset.color;
+        swatch.title = preset.name;
+
+        if (isSelected) {
+          swatch.innerHTML = '<span class="text-xs text-black font-bold">✓</span>';
+        }
+
+        swatch.addEventListener('click', () => {
+          note.bgPresetId = preset.id;
+          note.customBgUrl = ''; // Clear custom background when preset clicked
+          note.fontColor = preset.textColor;
+          document.getElementById('editor-custom-bg-url').value = '';
+          saveState(true);
+          renderApp(false);
+          populateEditorForm();
+        });
+
+        container.appendChild(swatch);
+      });
+    }
+
+    function renderTasksList(note) {
+      const container = document.getElementById('editor-tasks-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!note.tasks || note.tasks.length === 0) {
+        container.innerHTML = '<p class="text-xs text-zinc-500 italic py-1">No items yet. Type below and press Enter.</p>';
+        return;
+      }
+
+      note.tasks.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-zinc-950 p-2 rounded-md border border-zinc-800 text-xs';
+        row.innerHTML = `
+          <input type="checkbox" ${t.done ? 'checked' : ''} class="task-inner-cb w-3.5 h-3.5 rounded accent-indigo-600">
+          <input type="text" value="${escapeHtml(t.text)}" class="task-inner-text flex-1 bg-transparent border-0 text-zinc-200 focus:outline-none focus:ring-0 ${t.done ? 'line-through text-zinc-500' : ''}">
+          <button class="task-inner-del text-zinc-500 hover:text-rose-400 p-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+
+        // Checkbox change
+        row.querySelector('.task-inner-cb').addEventListener('change', (e) => {
+          t.done = e.target.checked;
+          saveState(true);
+          renderApp(false);
+        });
+
+        // Edit text
+        row.querySelector('.task-inner-text').addEventListener('change', (e) => {
+          t.text = e.target.value;
+          saveState(true);
+          renderApp(false);
+        });
+
+        // Delete task
+        row.querySelector('.task-inner-del').addEventListener('click', () => {
+          note.tasks = note.tasks.filter(item => item.id !== t.id);
+          saveState(true);
+          renderApp(false);
+          renderTasksList(note);
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function syncDockFormIfSelected(noteId) {
+      if (currentSelectedNoteId === noteId) {
+        const note = appState.notes.find(n => n.id === noteId);
+        if (note) {
+          const posX = document.getElementById('editor-pos-x');
+          const posY = document.getElementById('editor-pos-y');
+          const sizeW = document.getElementById('editor-size-w');
+          const sizeH = document.getElementById('editor-size-h');
+          if (posX) posX.value = note.x;
+          if (posY) posY.value = note.y;
+          if (sizeW) sizeW.value = note.width;
+          if (sizeH) sizeH.value = note.height;
+        }
+      }
+    }
+
+    function addNewNote() {
+      const id = 'note-' + Date.now();
+      const randomPreset = BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)];
+      const newNote = {
+        id: id,
+        mode: 'text',
+        text: 'New Stream Task\nClick Dock to edit details!',
+        tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
+        completed: false,
+        x: 80 + (appState.notes.length * 30) % 400,
+        y: 80 + (appState.notes.length * 25) % 300,
+        width: 260,
+        height: 260,
+        rotation: Math.floor(Math.random() * 7) - 3, // -3 to +3 degrees
+        zIndex: appState.notes.length + 1,
+        bgPresetId: randomPreset.id,
+        customBgUrl: '',
+        fontFamily: 'font-handwriting',
+        fontSize: 22,
+        fontColor: randomPreset.textColor,
+        textAlign: 'left',
+        padding: { top: 22, right: 20, bottom: 20, left: 20 }
+      };
+
+      appState.notes.push(newNote);
+      currentSelectedNoteId = newNote.id;
+      saveState(true);
+      renderApp(true);
+      showToast('Created new sticky note');
+    }
+
+    function deleteNote(noteId) {
+      appState.notes = appState.notes.filter(n => n.id !== noteId);
+      if (currentSelectedNoteId === noteId) {
+        currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
+      }
+      saveState(true);
+      renderApp(true);
+      showToast('Note deleted');
+    }
+
+    function duplicateNote(noteId) {
+      const note = appState.notes.find(n => n.id === noteId);
+      if (!note) return;
+
+      const clone = JSON.parse(JSON.stringify(note));
+      clone.id = 'note-' + Date.now();
+      clone.x += 35;
+      clone.y += 35;
+      clone.rotation = Math.floor(Math.random() * 7) - 3;
+      clone.zIndex = appState.notes.length + 2;
+
+      appState.notes.push(clone);
+      currentSelectedNoteId = clone.id;
+      saveState(true);
+      renderApp(true);
+      showToast('Note duplicated');
+    }
+
+    // Export current configuration to a local JSON file
+    function exportToJsonFile() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `obs-sticky-notes-backup-${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('Exported backup file');
+    }
+
+    // Import configuration from a local JSON file
+    function importFromJsonFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && Array.isArray(parsed.notes)) {
+            appState = parsed;
+            currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
+            saveState(true);
+            renderApp(true);
+            showToast('Backup restored successfully');
+          } else {
+            showToast('Invalid backup file format', 'error');
+          }
+        } catch (err) {
+          showToast('Failed to read JSON file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function setupEventListeners() {
+      // Switch view mode buttons
+      const btnOpenDock = document.getElementById('btn-open-dock-view');
+      const btnSwitchOverlay = document.getElementById('dock-btn-switch-overlay');
+      const btnQuickAdd = document.getElementById('btn-quick-add');
+      const btnDockAdd = document.getElementById('dock-btn-add-note');
+      const btnCreateFirst = document.getElementById('dock-btn-create-first');
+      const btnClearDone = document.getElementById('dock-btn-clear-done');
+      const btnExport = document.getElementById('dock-btn-export-json');
+      const inputImport = document.getElementById('dock-input-import-json');
+
+      if (btnOpenDock) {
+        btnOpenDock.addEventListener('click', () => switchViewMode('dock'));
+      }
+      if (btnSwitchOverlay) {
+        btnSwitchOverlay.addEventListener('click', () => switchViewMode('overlay'));
+      }
+      if (btnQuickAdd) {
+        btnQuickAdd.addEventListener('click', addNewNote);
+      }
+      if (btnDockAdd) {
+        btnDockAdd.addEventListener('click', addNewNote);
+      }
+      if (btnCreateFirst) {
+        btnCreateFirst.addEventListener('click', addNewNote);
+      }
+
+      if (btnClearDone) {
+        btnClearDone.addEventListener('click', () => {
+          const prevCount = appState.notes.length;
+          appState.notes = appState.notes.filter(n => !n.completed);
+          if (appState.notes.length !== prevCount) {
+            currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
+            saveState(true);
+            renderApp(true);
+            showToast('Cleared completed notes');
+          } else {
+            showToast('No completed notes to clear');
+          }
+        });
+      }
+
+      if (btnExport) {
+        btnExport.addEventListener('click', exportToJsonFile);
+      }
+      if (inputImport) {
+        inputImport.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            importFromJsonFile(e.target.files[0]);
+          }
+        });
+      }
+
+      // Note Text Changes
+      const noteTextArea = document.getElementById('editor-note-text');
+      if (noteTextArea) {
+        noteTextArea.addEventListener('input', (e) => {
+          const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+          if (note) {
+            note.text = e.target.value;
+            saveState(true);
+            renderOverlayCanvas();
+          }
+        });
+      }
+
+      // Add task item button
+      const btnAddTask = document.getElementById('editor-add-task-btn');
+      const inputTask = document.getElementById('editor-new-task-input');
+      const handleAddTask = () => {
+        const val = inputTask.value.trim();
+        if (!val) return;
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          if (!note.tasks) note.tasks = [];
+          note.tasks.push({ id: 't_' + Date.now(), text: val, done: false });
+          inputTask.value = '';
+          saveState(true);
+          renderApp(false);
+          renderTasksList(note);
+        }
+      };
+      if (btnAddTask && inputTask) {
+        btnAddTask.addEventListener('click', handleAddTask);
+        inputTask.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') handleAddTask();
+        });
+      }
+
+      // Mode toggling: Text vs Tasks
+      document.getElementById('editor-mode-text').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.mode = 'text';
+          saveState(true);
+          renderApp(false);
+          populateEditorForm();
+        }
+      });
+      document.getElementById('editor-mode-tasks').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.mode = 'tasks';
+          if (!note.tasks || note.tasks.length === 0) {
+            // Convert lines of text to checklist items
+            note.tasks = (note.text || '')
+              .split('\n')
+              .filter(line => line.trim().length > 0)
+              .map(line => ({ id: 't_' + Math.random(), text: line.replace(/^-\s*/, ''), done: false }));
+          }
+          saveState(true);
+          renderApp(false);
+          populateEditorForm();
+        }
+      });
+
+      // Mark note completed
+      document.getElementById('editor-note-completed').addEventListener('change', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.completed = e.target.checked;
+          saveState(true);
+          renderApp(false);
+        }
+      });
+
+      // Custom Background Image File Upload (Base64 encoding for 100% offline local file support)
+      const customBgInput = document.getElementById('editor-custom-bg-file');
+      if (customBgInput) {
+        customBgInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (uploadEvt) => {
+            const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+            if (note) {
+              note.customBgUrl = uploadEvt.target.result;
+              saveState(true);
+              renderApp(false);
+              populateEditorForm();
+              showToast('Custom artwork applied');
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Custom Background URL / Path Input
+      const customBgUrlInput = document.getElementById('editor-custom-bg-url');
+      if (customBgUrlInput) {
+        customBgUrlInput.addEventListener('input', (e) => {
+          const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+          if (note) {
+            note.customBgUrl = e.target.value.trim();
+            saveState(true);
+            renderOverlayCanvas();
+          }
+        });
+      }
+
+      // Clear Custom Image Button
+      document.getElementById('editor-custom-bg-clear').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.customBgUrl = '';
+          document.getElementById('editor-custom-bg-url').value = '';
+          saveState(true);
+          renderApp(false);
+          populateEditorForm();
+          showToast('Cleared custom artwork');
+        }
+      });
+
+      // Padding inputs
+      ['top', 'bottom', 'left', 'right'].forEach(side => {
+        const el = document.getElementById(`editor-pad-${side}`);
+        if (el) {
+          el.addEventListener('input', (e) => {
+            const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+            if (note) {
+              if (!note.padding) note.padding = { top: 20, right: 20, bottom: 20, left: 20 };
+              note.padding[side] = parseInt(e.target.value, 10) || 0;
+              saveState(true);
+              renderOverlayCanvas();
+            }
+          });
+        }
+      });
+
+      // Typography
+      document.getElementById('editor-font-family').addEventListener('change', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.fontFamily = e.target.value;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+
+      const fontSlider = document.getElementById('editor-font-size');
+      fontSlider.addEventListener('input', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.fontSize = parseInt(e.target.value, 10);
+          document.getElementById('editor-font-size-val').textContent = `${note.fontSize}px`;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+
+      const colorInput = document.getElementById('editor-font-color');
+      colorInput.addEventListener('input', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.fontColor = e.target.value;
+          document.getElementById('editor-font-color-hex').textContent = note.fontColor;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+
+      // Alignment buttons
+      document.querySelectorAll('.align-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const align = btn.getAttribute('data-align');
+          const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+          if (note) {
+            note.textAlign = align;
+            saveState(true);
+            renderOverlayCanvas();
+            populateEditorForm();
+          }
+        });
+      });
+
+      // Geometry manual numeric adjustments
+      const bindNumericInput = (id, propKey) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', (e) => {
+            const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+            if (note) {
+              note[propKey] = parseInt(e.target.value, 10) || 0;
+              saveState(true);
+              renderOverlayCanvas();
+            }
+          });
+        }
+      };
+
+      bindNumericInput('editor-pos-x', 'x');
+      bindNumericInput('editor-pos-y', 'y');
+      bindNumericInput('editor-size-w', 'width');
+      bindNumericInput('editor-size-h', 'height');
+      bindNumericInput('editor-rotation', 'rotation');
+
+      // Delete & Duplicate buttons in editor footer
+      document.getElementById('editor-btn-delete').addEventListener('click', () => {
+        if (currentSelectedNoteId) deleteNote(currentSelectedNoteId);
+      });
+      document.getElementById('editor-btn-duplicate').addEventListener('click', () => {
+        if (currentSelectedNoteId) duplicateNote(currentSelectedNoteId);
+      });
+    }
+
+    function switchViewMode(newMode) {
+      currentViewMode = newMode;
+      const overlayEl = document.getElementById('overlay-container');
+      const dockEl = document.getElementById('dock-container');
+
+      if (newMode === 'dock') {
+        document.body.className = 'mode-dock font-sans';
+        overlayEl.classList.add('hidden');
+        dockEl.classList.remove('hidden');
+        renderDockView();
+      } else {
+        document.body.className = 'mode-overlay font-sans';
+        overlayEl.classList.remove('hidden');
+        dockEl.classList.add('hidden');
+        renderOverlayCanvas();
+      }
+    }
+
+    function renderApp(refreshDockList = true) {
+      renderOverlayCanvas();
+      if (currentViewMode === 'dock' && refreshDockList) {
+        renderDockView();
+      }
+    }
+
+    function escapeHtml(string) {
+      return String(string)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Startup Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      switchViewMode(currentViewMode);
+      renderApp(true);
+    });
+  </script>
+</body>
+</html>
