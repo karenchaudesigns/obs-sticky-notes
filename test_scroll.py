@@ -4,7 +4,7 @@ def test():
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.goto('http://localhost:8000')
+        page.goto('http://localhost:8001')
 
         # Wait for the note to appear
         note = page.locator('.note-container').first
