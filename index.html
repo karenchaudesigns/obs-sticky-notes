@@ -885,11 +885,22 @@
         const zoomStep = 20;
         const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
 
+        const oldWidth = note.width;
+
         note.width = Math.min(1000, Math.max(140, note.width + delta));
         note.height = Math.min(1000, Math.max(140, note.height + delta));
 
         element.style.width = `${note.width}px`;
         element.style.height = `${note.height}px`;
+
+        if (oldWidth > 0 && note.width !== oldWidth) {
+          const ratio = note.width / oldWidth;
+          note.fontSize = Math.min(150, Math.max(12, Math.round((note.fontSize || 20) * ratio)));
+          const contentLayer = element.querySelector('.z-10');
+          if (contentLayer) {
+            contentLayer.style.fontSize = `${note.fontSize}px`;
+          }
+        }
 
         saveState(true);
         syncDockFormIfSelected(note.id);
@@ -1220,6 +1231,7 @@
           const posY = document.getElementById('editor-pos-y');
           const sizeW = document.getElementById('editor-size-w');
           const sizeH = document.getElementById('editor-size-h');
+          const fontSize = document.getElementById('editor-font-size');
           if (posX) posX.value = note.x;
           if (posY) posY.value = note.y;
           if (sizeW) {
@@ -1231,6 +1243,11 @@
             sizeH.value = note.height;
             const hVal = document.getElementById('editor-size-h-val');
             if (hVal) hVal.textContent = `${note.height}px`;
+          }
+          if (fontSize) {
+            fontSize.value = note.fontSize;
+            const fVal = document.getElementById('editor-font-size-val');
+            if (fVal) fVal.textContent = `${note.fontSize}px`;
           }
         }
       }
