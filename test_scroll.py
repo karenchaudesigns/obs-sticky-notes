@@ -7,7 +7,7 @@ def test():
         page.goto('http://localhost:8000')
 
         # Wait for the note to appear
-        note = page.locator('.note-container').first
+        note = page.locator('#canvas-note-note-1')
         note.wait_for()
 
         # Get initial bounding box

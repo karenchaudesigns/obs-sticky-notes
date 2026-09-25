@@ -236,7 +236,14 @@
 
       <!-- Active Note Detailed Settings & Editor -->
       <section id="dock-editor-panel" class="flex-1 overflow-y-auto p-4 md:p-6 bg-zinc-950 space-y-6">
+
+        <!-- Interactive Preview -->
+        <div id="dock-preview-container" class="relative w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+          <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+        </div>
+
         <div id="editor-empty-state" class="h-full flex flex-col items-center justify-center text-center p-8 text-zinc-500">
+
           <div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-2xl mb-3">📝</div>
           <h3 class="text-base font-semibold text-zinc-300">No Note Selected</h3>
           <p class="text-xs max-w-sm mt-1 text-zinc-500">Select a note from the left sidebar to edit content, style backgrounds, or adjust positioning.</p>
@@ -618,6 +625,8 @@
     let appState = loadStateFromStorage();
     let currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
     let currentViewMode = 'overlay'; // 'overlay' or 'dock'
+    let currentSelectionTarget = 'note'; // 'note' or 'text'
+    let dockPreviewScale = 1;
 
     // Determine Mode via URL Query Parameters (?mode=dock or ?mode=overlay)
     const urlParams = new URLSearchParams(window.location.search);
@@ -698,101 +707,128 @@
       }, 3000);
     }
 
-    function renderOverlayCanvas() {
-      const canvas = document.getElementById('notes-canvas');
-      if (!canvas) return;
 
-      canvas.innerHTML = '';
+    function updateSelectionIndicators() {
+      // Clear all existing indicators
+      document.querySelectorAll('.is-selected-note').forEach(el => el.classList.remove('ring-2', 'ring-indigo-500', 'is-selected-note'));
+      document.querySelectorAll('.is-selected-text').forEach(el => el.classList.remove('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text'));
 
-      appState.notes.forEach((note) => {
-        const noteEl = document.createElement('div');
-        noteEl.id = `canvas-note-${note.id}`;
-        noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
-        noteEl.style.left = `${note.x}px`;
-        noteEl.style.top = `${note.y}px`;
-        noteEl.style.width = `${note.width}px`;
-        noteEl.style.height = `${note.height}px`;
-        noteEl.style.transform = `rotate(${note.rotation}deg)`;
-        noteEl.style.zIndex = note.zIndex || 1;
+      if (!currentSelectedNoteId) return;
 
-        // Background Layer: either custom uploaded graphic or SVG preset
-        let backgroundContent = '';
-        if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
-          backgroundContent = `
-            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
-              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-contain rounded-lg" style="filter: saturate(${note.customBgSaturation ?? 100}%) brightness(${note.customBgBrightness ?? 100}%);" onerror="this.style.display='none'">
-            </div>
-          `;
-        } else {
-          const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
-          backgroundContent = `
-            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
-              ${preset.renderSvg()}
-            </div>
-          `;
+      const noteElements = document.querySelectorAll(`[id$="-note-${currentSelectedNoteId}"]`);
+      noteElements.forEach(noteEl => {
+        if (currentSelectionTarget === 'note') {
+          noteEl.classList.add('ring-2', 'ring-indigo-500', 'is-selected-note');
+        } else if (currentSelectionTarget === 'text') {
+          const textEl = noteEl.querySelector('.z-10');
+          if (textEl) {
+            textEl.classList.add('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text');
+          }
         }
-
-        // Content Layer (Tasks or Freeform Text)
-        let innerHtml = '';
-        if (note.mode === 'tasks' && Array.isArray(note.tasks) && note.tasks.length > 0) {
-          const tasksItemsHtml = note.tasks.map(t => `
-            <div class="flex items-start gap-2 mb-1.5 pointer-events-auto">
-              <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
-              <label class="cursor-pointer select-none">
-                <span class="task-text ${t.done ? 'line-through opacity-50' : ''}">${escapeHtml(t.text)}</span>
-              </label>
-            </div>
-          `).join('');
-
-          innerHtml = `<div class="tasks-container w-full h-full overflow-y-auto">${tasksItemsHtml}</div>`;
-        } else {
-          // Multiline text formatted with line breaks
-          const formattedText = escapeHtml(note.text || '').replace(/\n/g, '<br>');
-          innerHtml = `
-            <div class="w-full h-full overflow-hidden ${note.completed ? 'line-through opacity-50' : ''}">
-              ${formattedText || '<span class="opacity-40 italic">Empty note...</span>'}
-            </div>
-          `;
-        }
-
-        // Safe Area Padding from Note Style
-        const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
-
-        noteEl.innerHTML = `
-          ${backgroundContent}
-          <div class="relative z-10 w-full h-full flex flex-col ${note.fontFamily || 'font-handwriting'}" 
-               style="padding: ${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px; 
-                      font-size: ${note.fontSize || 20}px; 
-                      color: ${note.fontColor || '#1f2937'}; 
-                      font-weight: ${note.isBold ? 'bold' : 'normal'};
-                      font-style: ${note.isItalic ? 'italic' : 'normal'};
-                      text-align: ${note.textAlign || 'left'};
-                      transform: rotate(${note.textRotation || 0}deg);">
-            ${innerHtml}
-          </div>
-          <!-- Resize Grip Handle -->
-          <div class="resize-handle" data-note-id="${note.id}">
-            <svg class="w-3.5 h-3.5 text-zinc-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22 22H20V20H22V22ZM22 16H20V18H22V16ZM18 20H16V22H18V20ZM22 12H20V14H22V12ZM14 20H12V22H14V20ZM18 16H16V18H18V16Z"/></svg>
-          </div>
-        `;
-
-        // Attach dragging & resizing event listeners for OBS Interact
-        attachNoteInteractions(noteEl, note);
-
-        // Checkbox interaction delegation
-        noteEl.querySelectorAll('.task-checkbox').forEach(cb => {
-          cb.addEventListener('change', (e) => {
-            e.stopPropagation();
-            const noteId = e.target.getAttribute('data-note-id');
-            const taskId = e.target.getAttribute('data-task-id');
-            toggleTaskDone(noteId, taskId, e.target.checked);
-          });
-        });
-
-        canvas.appendChild(noteEl);
       });
     }
 
+    function createNoteElement(note, prefix) {
+      const noteEl = document.createElement('div');
+      noteEl.id = `${prefix}-note-${note.id}`;
+      noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
+      noteEl.style.left = `${note.x}px`;
+      noteEl.style.top = `${note.y}px`;
+      noteEl.style.width = `${note.width}px`;
+      noteEl.style.height = `${note.height}px`;
+      noteEl.style.transform = `rotate(${note.rotation}deg)`;
+      noteEl.style.zIndex = note.zIndex || 1;
+
+      // Background Layer: either custom uploaded graphic or SVG preset
+      let backgroundContent = '';
+      if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
+        backgroundContent = `
+          <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
+            <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-contain rounded-lg" style="filter: saturate(${note.customBgSaturation ?? 100}%) brightness(${note.customBgBrightness ?? 100}%);" onerror="this.style.display='none'">
+          </div>
+        `;
+      } else {
+        const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+        backgroundContent = `
+          <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
+            ${preset.renderSvg()}
+          </div>
+        `;
+      }
+
+      // Content Layer (Tasks or Freeform Text)
+      let innerHtml = '';
+      if (note.mode === 'tasks' && Array.isArray(note.tasks) && note.tasks.length > 0) {
+        const tasksItemsHtml = note.tasks.map(t => `
+          <div class="flex items-start gap-2 mb-1.5 pointer-events-auto">
+            <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
+            <label class="cursor-pointer select-none">
+              <span class="task-text ${t.done ? 'line-through opacity-50' : ''}">${escapeHtml(t.text)}</span>
+            </label>
+          </div>
+        `).join('');
+
+        innerHtml = `<div class="tasks-container overflow-y-auto">${tasksItemsHtml}</div>`;
+      } else {
+        // Multiline text formatted with line breaks
+        const formattedText = escapeHtml(note.text || '').replace(/\n/g, '<br>');
+        innerHtml = `
+          <div class="overflow-hidden ${note.completed ? 'line-through opacity-50' : ''}">
+            ${formattedText || '<span class="opacity-40 italic">Empty note...</span>'}
+          </div>
+        `;
+      }
+
+      // Safe Area Padding from Note Style
+      const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
+
+      noteEl.innerHTML = `
+        ${backgroundContent}
+        <div class="absolute z-10 flex flex-col ${note.fontFamily || 'font-handwriting'}"
+             style="top: ${pad.top}px; left: ${pad.left}px;
+                    font-size: ${note.fontSize || 20}px;
+                    color: ${note.fontColor || '#1f2937'};
+                    font-weight: ${note.isBold ? 'bold' : 'normal'};
+                    font-style: ${note.isItalic ? 'italic' : 'normal'};
+                    text-align: ${note.textAlign || 'left'};
+                    transform: rotate(${note.textRotation || 0}deg);">
+          ${innerHtml}
+        </div>
+        <!-- Resize Grip Handle -->
+        <div class="resize-handle" data-note-id="${note.id}">
+          <svg class="w-3.5 h-3.5 text-zinc-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22 22H20V20H22V22ZM22 16H20V18H22V16ZM18 20H16V22H18V20ZM22 12H20V14H22V12ZM14 20H12V22H14V20ZM18 16H16V18H18V16Z"/></svg>
+        </div>
+      `;
+
+      // Attach dragging & resizing event listeners for OBS Interact
+      attachNoteInteractions(noteEl, note);
+
+      // Checkbox interaction delegation
+      noteEl.querySelectorAll('.task-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          e.stopPropagation();
+          const noteId = e.target.getAttribute('data-note-id');
+          const taskId = e.target.getAttribute('data-task-id');
+          toggleTaskDone(noteId, taskId, e.target.checked);
+        });
+      });
+
+      return noteEl;
+    }
+
+    function renderOverlayCanvas() {
+      const canvas = document.getElementById('notes-canvas');
+      const dockCanvas = document.getElementById('dock-preview-canvas');
+
+      if (canvas) canvas.innerHTML = '';
+      if (dockCanvas) dockCanvas.innerHTML = '';
+
+      appState.notes.forEach((note) => {
+        if (canvas) canvas.appendChild(createNoteElement(note, 'canvas'));
+        if (dockCanvas) dockCanvas.appendChild(createNoteElement(note, 'dock'));
+      });
+      updateSelectionIndicators();
+    }
     function attachNoteInteractions(element, note) {
       let isDragging = false;
       let isResizing = false;
@@ -813,8 +849,20 @@
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
-        initialLeft = note.x;
-        initialTop = note.y;
+
+        // Determine selection target
+        if (e.target.closest('.z-10')) {
+          currentSelectionTarget = 'text';
+          initialLeft = (note.padding && note.padding.left) ? note.padding.left : 20;
+          initialTop = (note.padding && note.padding.top) ? note.padding.top : 20;
+        } else {
+          currentSelectionTarget = 'note';
+          initialLeft = note.x;
+          initialTop = note.y;
+        }
+
+        currentSelectedNoteId = note.id;
+        updateSelectionIndicators();
 
         // Bring to front
         const maxZ = Math.max(0, ...appState.notes.map(n => n.zIndex || 1));
@@ -843,15 +891,45 @@
       // Pointer Move Handler
       const handlePointerMove = (e) => {
         if (isDragging) {
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
-          note.x = Math.max(0, Math.round(initialLeft + deltaX));
-          note.y = Math.max(0, Math.round(initialTop + deltaY));
-          element.style.left = `${note.x}px`;
-          element.style.top = `${note.y}px`;
+          let scale = 1;
+          if (element.closest('#dock-preview-canvas')) {
+            scale = dockPreviewScale;
+          }
+          const deltaX = (e.clientX - startX) / scale;
+          const deltaY = (e.clientY - startY) / scale;
+
+          if (currentSelectionTarget === 'text') {
+            if (!note.padding) note.padding = { top: 20, right: 20, bottom: 20, left: 20 };
+
+            const newLeft = Math.round(initialLeft + deltaX);
+            const newTop = Math.round(initialTop + deltaY);
+
+            const diffX = newLeft - note.padding.left;
+            const diffY = newTop - note.padding.top;
+
+            note.padding.left = newLeft;
+            note.padding.top = newTop;
+            note.padding.right -= diffX;
+            note.padding.bottom -= diffY;
+
+            const contentLayer = element.querySelector('.z-10');
+            if (contentLayer) {
+              contentLayer.style.left = `${note.padding.left}px`;
+              contentLayer.style.top = `${note.padding.top}px`;
+            }
+          } else {
+            note.x = Math.max(0, Math.round(initialLeft + deltaX));
+            note.y = Math.max(0, Math.round(initialTop + deltaY));
+            element.style.left = `${note.x}px`;
+            element.style.top = `${note.y}px`;
+          }
         } else if (isResizing) {
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
+          let scale = 1;
+          if (element.closest('#dock-preview-canvas')) {
+            scale = dockPreviewScale;
+          }
+          const deltaX = (e.clientX - startX) / scale;
+          const deltaY = (e.clientY - startY) / scale;
           note.width = Math.max(140, Math.round(initialWidth + deltaX));
           note.height = Math.max(140, Math.round(initialHeight + deltaY));
           element.style.width = `${note.width}px`;
@@ -881,24 +959,34 @@
       element.addEventListener('wheel', (e) => {
         e.preventDefault();
 
-        // Zoom by 20px per scroll tick
-        const zoomStep = 20;
-        const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
+        if (currentSelectionTarget === 'text') {
+           const fontZoomStep = 2;
+           const fontDelta = e.deltaY < 0 ? fontZoomStep : -fontZoomStep;
+           note.fontSize = Math.min(150, Math.max(12, (note.fontSize || 20) + fontDelta));
+           const contentLayer = element.querySelector('.z-10');
+           if (contentLayer) {
+             contentLayer.style.fontSize = `${note.fontSize}px`;
+           }
+        } else {
+          // Zoom by 20px per scroll tick
+          const zoomStep = 20;
+          const delta = e.deltaY < 0 ? zoomStep : -zoomStep;
 
-        const oldWidth = note.width;
+          const oldWidth = note.width;
 
-        note.width = Math.min(1000, Math.max(140, note.width + delta));
-        note.height = Math.min(1000, Math.max(140, note.height + delta));
+          note.width = Math.min(1000, Math.max(140, note.width + delta));
+          note.height = Math.min(1000, Math.max(140, note.height + delta));
 
-        element.style.width = `${note.width}px`;
-        element.style.height = `${note.height}px`;
+          element.style.width = `${note.width}px`;
+          element.style.height = `${note.height}px`;
 
-        if (oldWidth > 0 && note.width !== oldWidth) {
-          const ratio = note.width / oldWidth;
-          note.fontSize = Math.min(150, Math.max(12, Math.round((note.fontSize || 20) * ratio)));
-          const contentLayer = element.querySelector('.z-10');
-          if (contentLayer) {
-            contentLayer.style.fontSize = `${note.fontSize}px`;
+          if (oldWidth > 0 && note.width !== oldWidth) {
+            const ratio = note.width / oldWidth;
+            note.fontSize = Math.min(150, Math.max(12, Math.round((note.fontSize || 20) * ratio)));
+            const contentLayer = element.querySelector('.z-10');
+            if (contentLayer) {
+              contentLayer.style.fontSize = `${note.fontSize}px`;
+            }
           }
         }
 
@@ -1041,6 +1129,7 @@
     }
 
     function showEditorEmptyState(isEmpty) {
+      updateDockPreviewScale();
       const emptyEl = document.getElementById('editor-empty-state');
       const contentEl = document.getElementById('editor-active-content');
       if (!emptyEl || !contentEl) return;
@@ -1723,9 +1812,23 @@
         .replace(/'/g, '&#039;');
     }
 
+
+    function updateDockPreviewScale() {
+      const container = document.getElementById('dock-preview-container');
+      const canvas = document.getElementById('dock-preview-canvas');
+      if (container && canvas) {
+        dockPreviewScale = container.clientWidth / 1920;
+        if (dockPreviewScale === 0) dockPreviewScale = 1;
+        canvas.style.transform = `scale(${dockPreviewScale})`;
+      }
+    }
+
+    window.addEventListener('resize', updateDockPreviewScale);
+
     // Startup Initialization
     window.addEventListener('DOMContentLoaded', () => {
       setupEventListeners();
+      updateDockPreviewScale();
       switchViewMode(currentViewMode);
       renderApp(true);
     });
