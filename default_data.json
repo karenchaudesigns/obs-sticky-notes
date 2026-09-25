@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "notes": [
+    {
+      "id": "note-1",
+      "mode": "text",
+      "text": "✨ Stream Goals:\n- Warm up sculpt (30m)\n- Retopology tutorial\n- Raid friendly streamer!",
+      "tasks": [
+        {
+          "id": "t1",
+          "text": "Warm up sculpt (30m)",
+          "done": true
+        },
+        {
+          "id": "t2",
+          "text": "Retopology tutorial",
+          "done": false
+        },
+        {
+          "id": "t3",
+          "text": "Raid friendly streamer!",
+          "done": false
+        }
+      ],
+      "completed": false,
+      "visible": true,
+      "x": 60,
+      "y": 60,
+      "width": 280,
+      "height": 280,
+      "rotation": -2,
+      "textRotation": 0,
+      "zIndex": 10,
+      "bgPresetId": "classic-yellow",
+      "customBgUrl": "",
+      "customBgSaturation": 100,
+      "customBgFilter": "none",
+      "customBgFilterStrength": 100,
+      "fontFamily": "font-handwriting",
+      "fontSize": 22,
+      "fontColor": "#1f2937",
+      "fitText": false,
+      "isItalic": false,
+      "textAlign": "left",
+      "padding": {
+        "top": 24,
+        "right": 20,
+        "bottom": 20,
+        "left": 20
+      }
+    }
+  ]
+}

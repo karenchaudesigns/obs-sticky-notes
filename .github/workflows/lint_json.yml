@@ -1,0 +1,15 @@
+name: Lint JSON
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Validate JSON
+        run: find . -name "*.json" -print0 | xargs -0 -I {} jq empty "{}"
