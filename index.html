@@ -632,50 +632,19 @@
       padding: { top: 24, right: 20, bottom: 20, left: 20 }
     };
 
-    const DEFAULT_DATA = {
-      version: '1.0',
-      notes: [
-        {
-          id: 'note-1',
-          mode: 'text', // 'text' | 'tasks'
-          text: "✨ Stream Goals:\n- Warm up sculpt (30m)\n- Retopology tutorial\n- Raid friendly streamer!",
-          tasks: [
-            { id: 't1', text: 'Warm up sculpt (30m)', done: true },
-            { id: 't2', text: 'Retopology tutorial', done: false },
-            { id: 't3', text: 'Raid friendly streamer!', done: false }
-          ],
-          completed: false,
-        visible: true,
-          visible: true,
-          x: 60,
-          y: 60,
-          width: 280,
-          height: 280,
-          rotation: -2,
-          textRotation: 0,
-          zIndex: 10,
-          bgPresetId: 'classic-yellow',
-          customBgUrl: '',
-        customBgSaturation: 100,
 
-      customBgFilter: 'none',
-      customBgFilterStrength: 100,
-          customBgSaturation: 100,
+    let DEFAULT_DATA = {};
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'default_data.json', false);
+      xhr.send(null);
+      if (xhr.status === 200) {
+        DEFAULT_DATA = JSON.parse(xhr.responseText);
+      }
+    } catch(e) {
+      console.error("Failed to load default_data.json", e);
+    }
 
-      customBgFilter: 'none',
-      customBgFilterStrength: 100,
-          fontFamily: 'font-handwriting',
-          fontSize: 22,
-          fontColor: '#1f2937',
-
-        fitText: false,
-          fitText: false,
-          isItalic: false,
-          textAlign: 'left',
-          padding: { top: 24, right: 20, bottom: 20, left: 20 }
-        }
-      ]
-    };
 
     // Application Global State
     let appState = loadStateFromStorage();
@@ -768,6 +737,20 @@
       // Clear all existing indicators
       document.querySelectorAll('.is-selected-note').forEach(el => el.classList.remove('ring-2', 'ring-indigo-500', 'is-selected-note'));
       document.querySelectorAll('.is-selected-text').forEach(el => el.classList.remove('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text'));
+
+      if (!currentSelectedNoteId) return;
+
+      const noteElements = document.querySelectorAll(`[id$="-note-${currentSelectedNoteId}"]`);
+      noteElements.forEach(noteEl => {
+        if (currentSelectionTarget === 'note') {
+          noteEl.classList.add('ring-2', 'ring-indigo-500', 'is-selected-note');
+        } else if (currentSelectionTarget === 'text') {
+          const textEl = noteEl.querySelector('.z-10');
+          if (textEl) {
+            textEl.classList.add('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text');
+          }
+        }
+      });
     }
     
     function applyFitText(noteEl, note) {
@@ -814,56 +797,11 @@
 
       appState.notes.forEach((note) => {
         if (note.visible === false) return;
-        const noteEl = document.createElement('div');
-        noteEl.id = `canvas-note-${note.id}`;
-        noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
-        noteEl.style.left = `${note.x}px`;
-        noteEl.style.top = `${note.y}px`;
-        noteEl.style.width = `${note.width}px`;
-        noteEl.style.height = `${note.height}px`;
-        noteEl.style.transform = `rotate(${note.rotation}deg)`;
-        noteEl.style.zIndex = note.zIndex || 1;
-
-        // Background Layer: either custom uploaded graphic or SVG preset
-        let backgroundContent = '';
-        if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
-          let filterStyle = `saturate(${note.customBgSaturation ?? 100}%) brightness(${note.customBgBrightness ?? 100}%)`;
-          if (note.customBgFilter === 'light-pastel') {
-            const strength = (note.customBgFilterStrength ?? 100) / 100;
-            filterStyle += ` contrast(${100 - (20 * strength)}%) brightness(${100 + (20 * strength)}%) saturate(${100 - (30 * strength)}%) sepia(${20 * strength}%) hue-rotate(${10 * strength}deg)`;
-          } else if (note.customBgFilter === 'grayscale') {
-            filterStyle += ` grayscale(100%)`;
-          } else if (note.customBgFilter === 'monotone-yellow') {
-            filterStyle += ` sepia(100%) hue-rotate(10deg) saturate(200%) brightness(110%)`;
-          }
-
-          backgroundContent = `
-            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
-              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-contain rounded-lg" style="filter: ${filterStyle};" onerror="this.style.display='none'">
-            </div>
-          `;
-        } else {
-          const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
-          backgroundContent = `
-            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
-              ${preset.renderSvg()}
-            </div>
-          `;
-        }
-
-      if (!currentSelectedNoteId) return;
-
-      const noteElements = document.querySelectorAll(`[id$="-note-${currentSelectedNoteId}"]`);
-      noteElements.forEach(noteEl => {
-        if (currentSelectionTarget === 'note') {
-          noteEl.classList.add('ring-2', 'ring-indigo-500', 'is-selected-note');
-        } else if (currentSelectionTarget === 'text') {
-          const textEl = noteEl.querySelector('.z-10');
-          if (textEl) {
-            textEl.classList.add('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text');
-          }
-        }
+        const noteEl = createNoteElement(note, 'canvas');
+        canvas.appendChild(noteEl);
       });
+
+      updateSelectionIndicators();
     }
 
     function createNoteElement(note, prefix) {
@@ -1141,6 +1079,7 @@
         if (note.fitText) {
              applyFitText(element, note);
         }
+        } // close else block from wheel handler
 
         saveState(true);
         syncDockFormIfSelected(note.id);
