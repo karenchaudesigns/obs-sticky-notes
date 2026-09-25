@@ -291,7 +291,7 @@
           <!-- Background & Artwork Customization -->
           <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
             <div class="flex items-center justify-between">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Background &amp; Custom Artwork</h3>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Background &amp; Custom Artwork</h3><button id="editor-btn-reset-bg" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Background Settings">Reset</button>
               <span class="text-[11px] text-zinc-500">Select preset or upload graphic</span>
             </div>
 
@@ -317,6 +317,23 @@
                   <input type="text" id="editor-custom-bg-url" placeholder="assets/backgrounds/my-art.png" class="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                   <button id="editor-custom-bg-clear" class="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs" title="Clear image">Clear</button>
                 </div>
+              </div>
+            </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <label class="text-[11px] text-zinc-400 block mb-1">Image Filter</label>
+                <select id="editor-bg-filter" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1 text-xs text-zinc-200">
+                  <option value="none">None</option>
+                  <option value="light-pastel">Light Pastel</option>
+                  <option value="grayscale">Grayscale</option>
+                  <option value="monotone-yellow">Monotone Yellow</option>
+                </select>
+              </div>
+              <div id="editor-bg-filter-strength-container" class="hidden">
+                <label class="text-[11px] text-zinc-400 block mb-1">Filter Strength</label>
+                <input type="range" id="editor-bg-filter-strength" min="0" max="100" step="1" class="w-full accent-indigo-500">
+                <span id="editor-bg-filter-strength-val" class="text-[11px] text-zinc-400 float-right">100%</span>
               </div>
             </div>
 
@@ -356,7 +373,7 @@
 
           <!-- Typography & Text Placement -->
           <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</h3>
+            <div class="flex items-center justify-between"><h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</h3><button id="editor-btn-reset-type" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Typography Settings">Reset</button></div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label class="text-xs text-zinc-300 block mb-1">Font Family</label>
@@ -385,20 +402,24 @@
 
               <div>
                 <label class="text-xs text-zinc-300 block mb-1">Format & Alignment</label>
-                <div class="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+                <div class="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700 mb-2">
                   <button data-format="bold" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
                   <button data-format="italic" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
                   <button data-align="left" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
                   <button data-align="center" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
                   <button data-align="right" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
                 </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="editor-fit-text" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-zinc-800 border-zinc-700">
+                  <span class="text-[11px] text-zinc-300 font-medium">Fit text to note</span>
+                </label>
               </div>
             </div>
           </div>
 
           <!-- Position, Dimensions & Tilt -->
           <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Canvas Dimensions &amp; Tilt</h3>
+            <div class="flex items-center justify-between"><h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Canvas Dimensions &amp; Tilt</h3><button id="editor-btn-reset-dim" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Dimension Settings">Reset</button></div>
             <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
               <div>
                 <label class="text-xs text-zinc-400 block mb-1">Pos X (px)</label>
@@ -430,6 +451,9 @@
           </div>
 
           <!-- Danger zone actions -->
+          <div class="flex items-center justify-between pt-2 pb-2 border-b border-zinc-800/80 mb-2">
+            <button id="editor-btn-reset-all" class="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">Reset All Settings</button>
+          </div>
           <div class="flex items-center justify-between pt-2">
             <button id="editor-btn-delete" class="px-3.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -584,6 +608,30 @@
     ];
 
     // Default Seed Data
+    const DEFAULT_NOTE_SETTINGS = {
+      x: 60,
+      y: 60,
+      width: 280,
+      height: 280,
+      rotation: -2,
+      textRotation: 0,
+      bgPresetId: 'classic-yellow',
+      customBgUrl: '',
+      customBgSaturation: 100,
+
+      customBgFilter: 'none',
+      customBgFilterStrength: 100,
+      fontFamily: 'font-handwriting',
+      fontSize: 22,
+      fontColor: '#1f2937',
+
+        fitText: false,
+          fitText: false,
+      isItalic: false,
+      textAlign: 'left',
+      padding: { top: 24, right: 20, bottom: 20, left: 20 }
+    };
+
     const DEFAULT_DATA = {
       version: '1.0',
       notes: [
@@ -597,6 +645,8 @@
             { id: 't3', text: 'Raid friendly streamer!', done: false }
           ],
           completed: false,
+        visible: true,
+          visible: true,
           x: 60,
           y: 60,
           width: 280,
@@ -607,13 +657,19 @@
           bgPresetId: 'classic-yellow',
           customBgUrl: '',
         customBgSaturation: 100,
-        customBgBrightness: 100,
+
+      customBgFilter: 'none',
+      customBgFilterStrength: 100,
           customBgSaturation: 100,
-          customBgBrightness: 100,
+
+      customBgFilter: 'none',
+      customBgFilterStrength: 100,
           fontFamily: 'font-handwriting',
           fontSize: 22,
           fontColor: '#1f2937',
-          isBold: false,
+
+        fitText: false,
+          fitText: false,
           isItalic: false,
           textAlign: 'left',
           padding: { top: 24, right: 20, bottom: 20, left: 20 }
@@ -712,6 +768,88 @@
       // Clear all existing indicators
       document.querySelectorAll('.is-selected-note').forEach(el => el.classList.remove('ring-2', 'ring-indigo-500', 'is-selected-note'));
       document.querySelectorAll('.is-selected-text').forEach(el => el.classList.remove('outline', 'outline-dashed', 'outline-indigo-500', 'outline-2', 'is-selected-text'));
+    }
+    
+    function applyFitText(noteEl, note) {
+      if (!note.fitText || note.mode !== 'text') return;
+      const contentContainer = noteEl.querySelector('.z-10');
+      const innerContent = contentContainer.querySelector('div');
+
+      if (!innerContent || innerContent.textContent.trim() === '') return;
+
+      const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
+      const maxWidth = note.width - pad.left - pad.right;
+      const maxHeight = note.height - pad.top - pad.bottom;
+
+      let minFontSize = 12;
+      let maxFontSize = 150;
+      let optimalFontSize = minFontSize;
+
+      while (minFontSize <= maxFontSize) {
+        const midFontSize = Math.floor((minFontSize + maxFontSize) / 2);
+        contentContainer.style.fontSize = `${midFontSize}px`;
+
+        if (innerContent.scrollWidth <= maxWidth && innerContent.scrollHeight <= maxHeight) {
+          optimalFontSize = midFontSize;
+          minFontSize = midFontSize + 1;
+        } else {
+          maxFontSize = midFontSize - 1;
+        }
+      }
+
+      contentContainer.style.fontSize = `${optimalFontSize}px`;
+
+      // Update form if selected
+      if (currentSelectedNoteId === note.id && note.fitText) {
+          const fVal = document.getElementById('editor-font-size-val');
+          if (fVal) fVal.textContent = `${optimalFontSize}px (Auto)`;
+      }
+    }
+
+    function renderOverlayCanvas() {
+      const canvas = document.getElementById('notes-canvas');
+      if (!canvas) return;
+
+      canvas.innerHTML = '';
+
+      appState.notes.forEach((note) => {
+        if (note.visible === false) return;
+        const noteEl = document.createElement('div');
+        noteEl.id = `canvas-note-${note.id}`;
+        noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
+        noteEl.style.left = `${note.x}px`;
+        noteEl.style.top = `${note.y}px`;
+        noteEl.style.width = `${note.width}px`;
+        noteEl.style.height = `${note.height}px`;
+        noteEl.style.transform = `rotate(${note.rotation}deg)`;
+        noteEl.style.zIndex = note.zIndex || 1;
+
+        // Background Layer: either custom uploaded graphic or SVG preset
+        let backgroundContent = '';
+        if (note.customBgUrl && note.customBgUrl.trim().length > 0) {
+          let filterStyle = `saturate(${note.customBgSaturation ?? 100}%) brightness(${note.customBgBrightness ?? 100}%)`;
+          if (note.customBgFilter === 'light-pastel') {
+            const strength = (note.customBgFilterStrength ?? 100) / 100;
+            filterStyle += ` contrast(${100 - (20 * strength)}%) brightness(${100 + (20 * strength)}%) saturate(${100 - (30 * strength)}%) sepia(${20 * strength}%) hue-rotate(${10 * strength}deg)`;
+          } else if (note.customBgFilter === 'grayscale') {
+            filterStyle += ` grayscale(100%)`;
+          } else if (note.customBgFilter === 'monotone-yellow') {
+            filterStyle += ` sepia(100%) hue-rotate(10deg) saturate(200%) brightness(110%)`;
+          }
+
+          backgroundContent = `
+            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none">
+              <img src="${note.customBgUrl}" alt="Sticky Background" class="w-full h-full object-contain rounded-lg" style="filter: ${filterStyle};" onerror="this.style.display='none'">
+            </div>
+          `;
+        } else {
+          const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+          backgroundContent = `
+            <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
+              ${preset.renderSvg()}
+            </div>
+          `;
+        }
 
       if (!currentSelectedNoteId) return;
 
@@ -811,6 +949,12 @@
           const taskId = e.target.getAttribute('data-task-id');
           toggleTaskDone(noteId, taskId, e.target.checked);
         });
+        canvas.appendChild(noteEl);
+
+        if (note.fitText && note.mode === 'text') {
+            // Need to wait for DOM insertion to measure scrollWidth/scrollHeight accurately
+            requestAnimationFrame(() => applyFitText(noteEl, note));
+        }
       });
 
       return noteEl;
@@ -934,6 +1078,9 @@
           note.height = Math.max(140, Math.round(initialHeight + deltaY));
           element.style.width = `${note.width}px`;
           element.style.height = `${note.height}px`;
+          if (note.fitText) {
+             applyFitText(element, note);
+          }
         }
       };
 
@@ -980,14 +1127,19 @@
           element.style.width = `${note.width}px`;
           element.style.height = `${note.height}px`;
 
-          if (oldWidth > 0 && note.width !== oldWidth) {
-            const ratio = note.width / oldWidth;
+        if (oldWidth > 0 && note.width !== oldWidth) {
+          const ratio = note.width / oldWidth;
+          if (!note.fitText) {
             note.fontSize = Math.min(150, Math.max(12, Math.round((note.fontSize || 20) * ratio)));
             const contentLayer = element.querySelector('.z-10');
             if (contentLayer) {
               contentLayer.style.fontSize = `${note.fontSize}px`;
             }
           }
+        }
+
+        if (note.fitText) {
+             applyFitText(element, note);
         }
 
         saveState(true);
@@ -1083,6 +1235,13 @@
               <button data-action="move-down" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Send Backward">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
+              <button data-action="toggle-visibility" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="${note.visible === false ? 'Show Note' : 'Hide Note'}">
+                <svg class="w-3.5 h-3.5 ${note.visible === false ? 'opacity-50' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  ${note.visible === false
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />'
+                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>'}
+                </svg>
+              </button>
               <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
                 <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
               </button>
@@ -1103,6 +1262,13 @@
           if (e.target.closest('[data-action="move-down"]')) {
             e.stopPropagation();
             reorderNoteStack(note.id, -1);
+            return;
+          }
+          if (e.target.closest('[data-action="toggle-visibility"]')) {
+            e.stopPropagation();
+            note.visible = note.visible === false ? true : false;
+            saveState(true);
+            renderApp(true);
             return;
           }
           if (e.target.closest('[data-action="toggle-complete"]')) {
@@ -1189,6 +1355,17 @@
       document.getElementById('editor-bg-brightness').value = note.customBgBrightness ?? 100;
       document.getElementById('editor-bg-brightness-val').textContent = `${note.customBgBrightness ?? 100}%`;
 
+
+      document.getElementById('editor-bg-filter').value = note.customBgFilter || 'none';
+      const strengthContainer = document.getElementById('editor-bg-filter-strength-container');
+      if (note.customBgFilter === 'light-pastel') {
+        strengthContainer.classList.remove('hidden');
+        document.getElementById('editor-bg-filter-strength').value = note.customBgFilterStrength ?? 100;
+        document.getElementById('editor-bg-filter-strength-val').textContent = `${note.customBgFilterStrength ?? 100}%`;
+      } else {
+        strengthContainer.classList.add('hidden');
+      }
+
       // Padding fields
       const pad = note.padding || { top: 20, right: 20, bottom: 20, left: 20 };
       document.getElementById('editor-pad-top').value = pad.top;
@@ -1204,6 +1381,19 @@
       document.getElementById('editor-font-color-hex').textContent = note.fontColor || '#1f2937';
 
       // Format buttons
+      const fitTextCheckbox = document.getElementById('editor-fit-text');
+      if (fitTextCheckbox) fitTextCheckbox.checked = !!note.fitText;
+      const fontSizeSlider = document.getElementById('editor-font-size');
+      if (fontSizeSlider) {
+          if (note.fitText) {
+             fontSizeSlider.disabled = true;
+             fontSizeSlider.classList.add('opacity-50');
+          } else {
+             fontSizeSlider.disabled = false;
+             fontSizeSlider.classList.remove('opacity-50');
+          }
+      }
+
       document.querySelectorAll('.format-btn').forEach(btn => {
         const format = btn.getAttribute('data-format');
         if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
@@ -1275,10 +1465,15 @@
         return;
       }
 
-      note.tasks.forEach(t => {
+
+      note.tasks.forEach((t, index) => {
         const row = document.createElement('div');
         row.className = 'flex items-center gap-2 bg-zinc-950 p-2 rounded-md border border-zinc-800 text-xs';
         row.innerHTML = `
+          <div class="flex flex-col gap-0.5">
+            <button class="task-inner-up text-zinc-500 hover:text-indigo-400 p-0 leading-none h-3" ${index === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>▲</button>
+            <button class="task-inner-down text-zinc-500 hover:text-indigo-400 p-0 leading-none h-3" ${index === note.tasks.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : ''}>▼</button>
+          </div>
           <input type="checkbox" ${t.done ? 'checked' : ''} class="task-inner-cb w-3.5 h-3.5 rounded accent-indigo-600">
           <input type="text" value="${escapeHtml(t.text)}" class="task-inner-text flex-1 bg-transparent border-0 text-zinc-200 focus:outline-none focus:ring-0 ${t.done ? 'line-through text-zinc-500' : ''}">
           <button class="task-inner-del text-zinc-500 hover:text-rose-400 p-1">
@@ -1287,6 +1482,7 @@
         `;
 
         // Checkbox change
+
         row.querySelector('.task-inner-cb').addEventListener('change', (e) => {
           t.done = e.target.checked;
           saveState(true);
@@ -1308,7 +1504,33 @@
           renderTasksList(note);
         });
 
+
+        // Reorder up
+        row.querySelector('.task-inner-up').addEventListener('click', () => {
+          if (index > 0) {
+            const temp = note.tasks[index - 1];
+            note.tasks[index - 1] = note.tasks[index];
+            note.tasks[index] = temp;
+            saveState(true);
+            renderApp(false);
+            renderTasksList(note);
+          }
+        });
+
+        // Reorder down
+        row.querySelector('.task-inner-down').addEventListener('click', () => {
+          if (index < note.tasks.length - 1) {
+            const temp = note.tasks[index + 1];
+            note.tasks[index + 1] = note.tasks[index];
+            note.tasks[index] = temp;
+            saveState(true);
+            renderApp(false);
+            renderTasksList(note);
+          }
+        });
+
         container.appendChild(row);
+
       });
     }
 
@@ -1351,6 +1573,8 @@
         text: 'New Stream Task\nClick Dock to edit details!',
         tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
         completed: false,
+        visible: true,
+          visible: true,
         x: 80 + (appState.notes.length * 30) % 400,
         y: 80 + (appState.notes.length * 25) % 300,
         width: 260,
@@ -1360,10 +1584,14 @@
         zIndex: appState.notes.length + 1,
         bgPresetId: randomPreset.id,
         customBgUrl: '',
+        customBgFilter: 'none',
+        customBgFilterStrength: 100,
         fontFamily: 'font-handwriting',
         fontSize: 22,
         fontColor: randomPreset.textColor,
-        isBold: false,
+
+        fitText: false,
+          fitText: false,
         isItalic: false,
         textAlign: 'left',
         padding: { top: 22, right: 20, bottom: 20, left: 20 }
@@ -1440,7 +1668,64 @@
     }
 
     function setupEventListeners() {
+
+      // Resets
+      document.getElementById('editor-btn-reset-bg').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.bgPresetId = DEFAULT_NOTE_SETTINGS.bgPresetId;
+          note.customBgUrl = DEFAULT_NOTE_SETTINGS.customBgUrl;
+          note.customBgSaturation = DEFAULT_NOTE_SETTINGS.customBgSaturation;
+          note.customBgBrightness = DEFAULT_NOTE_SETTINGS.customBgBrightness;
+          note.customBgFilter = DEFAULT_NOTE_SETTINGS.customBgFilter;
+          note.customBgFilterStrength = DEFAULT_NOTE_SETTINGS.customBgFilterStrength;
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
+      document.getElementById('editor-btn-reset-type').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.fontFamily = DEFAULT_NOTE_SETTINGS.fontFamily;
+          note.fontSize = DEFAULT_NOTE_SETTINGS.fontSize;
+          note.fontColor = DEFAULT_NOTE_SETTINGS.fontColor;
+          note.isBold = DEFAULT_NOTE_SETTINGS.isBold;
+          note.isItalic = DEFAULT_NOTE_SETTINGS.isItalic;
+          note.fitText = DEFAULT_NOTE_SETTINGS.fitText;
+          note.textAlign = DEFAULT_NOTE_SETTINGS.textAlign;
+          note.padding = { ...DEFAULT_NOTE_SETTINGS.padding };
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
+      document.getElementById('editor-btn-reset-dim').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.x = DEFAULT_NOTE_SETTINGS.x;
+          note.y = DEFAULT_NOTE_SETTINGS.y;
+          note.width = DEFAULT_NOTE_SETTINGS.width;
+          note.height = DEFAULT_NOTE_SETTINGS.height;
+          note.rotation = DEFAULT_NOTE_SETTINGS.rotation;
+          note.textRotation = DEFAULT_NOTE_SETTINGS.textRotation;
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
+      document.getElementById('editor-btn-reset-all').addEventListener('click', () => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          Object.assign(note, DEFAULT_NOTE_SETTINGS);
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
+
       // Switch view mode buttons
+
       const btnOpenDock = document.getElementById('btn-open-dock-view');
       const btnSwitchOverlay = document.getElementById('dock-btn-switch-overlay');
       const btnQuickAdd = document.getElementById('btn-quick-add');
@@ -1620,6 +1905,30 @@
         }
       });
 
+
+      // Image Filters
+      document.getElementById('editor-bg-filter').addEventListener('change', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.customBgFilter = e.target.value;
+          if (note.customBgFilter === 'light-pastel' && note.customBgFilterStrength === undefined) {
+             note.customBgFilterStrength = 100;
+          }
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
+      document.getElementById('editor-bg-filter-strength').addEventListener('input', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.customBgFilterStrength = parseInt(e.target.value, 10);
+          document.getElementById('editor-bg-filter-strength-val').textContent = `${note.customBgFilterStrength}%`;
+          saveState(true);
+          renderOverlayCanvas();
+        }
+      });
+
       document.getElementById('editor-custom-bg-clear').addEventListener('click', () => {
         const note = appState.notes.find(n => n.id === currentSelectedNoteId);
         if (note) {
@@ -1696,6 +2005,15 @@
       });
 
       // Alignment buttons
+      document.getElementById('editor-fit-text').addEventListener('change', (e) => {
+        const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+        if (note) {
+          note.fitText = e.target.checked;
+          saveState(true);
+          renderOverlayCanvas();
+          populateEditorForm();
+        }
+      });
       document.querySelectorAll('.align-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const align = btn.getAttribute('data-align');
