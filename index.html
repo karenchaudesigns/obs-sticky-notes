@@ -491,15 +491,15 @@
         name: 'Classic Post-it Yellow',
         color: '#FFF740',
         textColor: '#1f2937',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="grad-yellow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="grad-yellow-${suffix}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#fffb7a"/>
                 <stop offset="100%" stop-color="#fae738"/>
               </linearGradient>
             </defs>
-            <rect width="100" height="100" rx="3" fill="url(#grad-yellow)"/>
+            <rect width="100" height="100" rx="3" fill="url(#grad-yellow-${suffix})"/>
             <!-- Top tape strip effect -->
             <path d="M 30 0 L 70 0 L 68 8 L 32 8 Z" fill="rgba(255, 255, 255, 0.45)"/>
           </svg>
@@ -510,15 +510,15 @@
         name: 'Soft Pink Blossom',
         color: '#FF7EB9',
         textColor: '#371526',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="grad-pink" x1="0%" y1="0%" x2="0%" y2="100%">
+              <linearGradient id="grad-pink-${suffix}" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stop-color="#ff94c7"/>
                 <stop offset="100%" stop-color="#f86ea9"/>
               </linearGradient>
             </defs>
-            <rect width="100" height="100" rx="3" fill="url(#grad-pink)"/>
+            <rect width="100" height="100" rx="3" fill="url(#grad-pink-${suffix})"/>
           </svg>
         `
       },
@@ -527,15 +527,15 @@
         name: 'Pastel Aqua Cyan',
         color: '#7AFCFF',
         textColor: '#0f2935',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="grad-cyan-${suffix}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#99f8ff"/>
                 <stop offset="100%" stop-color="#64f3fa"/>
               </linearGradient>
             </defs>
-            <rect width="100" height="100" rx="3" fill="url(#grad-cyan)"/>
+            <rect width="100" height="100" rx="3" fill="url(#grad-cyan-${suffix})"/>
           </svg>
         `
       },
@@ -544,7 +544,7 @@
         name: 'Mint Fresh',
         color: '#6bf178',
         textColor: '#0e3816',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="3" fill="#6bf178"/>
           </svg>
@@ -555,15 +555,15 @@
         name: 'Kraft Cardboard',
         color: '#d4a373',
         textColor: '#291b0c',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="grad-kraft" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="grad-kraft-${suffix}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#ddaf81"/>
                 <stop offset="100%" stop-color="#c99764"/>
               </linearGradient>
             </defs>
-            <rect width="100" height="100" rx="2" fill="url(#grad-kraft)"/>
+            <rect width="100" height="100" rx="2" fill="url(#grad-kraft-${suffix})"/>
             <!-- Push pin at center top -->
             <circle cx="50" cy="8" r="4.5" fill="#e11d48"/>
             <circle cx="48.5" cy="6.5" r="1.5" fill="#fff" opacity="0.6"/>
@@ -575,7 +575,7 @@
         name: 'Obsidian Streamer',
         color: '#1e2029',
         textColor: '#f3f4f6',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="4" fill="#1e2029" stroke="#374151" stroke-width="1.5"/>
             <path d="M 0 0 L 100 0 L 100 6 L 0 6 Z" fill="#6366f1"/>
@@ -587,7 +587,7 @@
         name: 'Lavender Cozy',
         color: '#c4b5fd',
         textColor: '#2e1065',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="3" fill="#c4b5fd"/>
           </svg>
@@ -598,7 +598,7 @@
         name: 'Minimal White Index',
         color: '#ffffff',
         textColor: '#18181b',
-        renderSvg: () => `
+        renderSvg: (suffix = '') => `
           <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="2" fill="#ffffff" stroke="#e4e4e7" stroke-width="1"/>
             <line x1="0" y1="12" x2="100" y2="12" stroke="#f43f5e" stroke-width="1"/>
@@ -789,20 +789,7 @@
       }
     }
 
-    function renderOverlayCanvas() {
-      const canvas = document.getElementById('notes-canvas');
-      if (!canvas) return;
 
-      canvas.innerHTML = '';
-
-      appState.notes.forEach((note) => {
-        if (note.visible === false) return;
-        const noteEl = createNoteElement(note, 'canvas');
-        canvas.appendChild(noteEl);
-      });
-
-      updateSelectionIndicators();
-    }
 
     function createNoteElement(note, prefix) {
       const noteEl = document.createElement('div');
@@ -812,7 +799,7 @@
       noteEl.style.top = `${note.y}px`;
       noteEl.style.width = `${note.width}px`;
       noteEl.style.height = `${note.height}px`;
-      noteEl.style.transform = `rotate(${note.rotation}deg)`;
+      noteEl.style.transform = `rotate(${note.rotation || 0}deg)`;
       noteEl.style.zIndex = note.zIndex || 1;
 
       // Background Layer: either custom uploaded graphic or SVG preset
@@ -827,7 +814,7 @@
         const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
         backgroundContent = `
           <div class="absolute inset-0 w-full h-full rounded-lg overflow-hidden pointer-events-none paper-curl note-shadow">
-            ${preset.renderSvg()}
+            ${preset.renderSvg(prefix + '-' + note.id)}
           </div>
         `;
       }
@@ -887,13 +874,12 @@
           const taskId = e.target.getAttribute('data-task-id');
           toggleTaskDone(noteId, taskId, e.target.checked);
         });
-        canvas.appendChild(noteEl);
-
-        if (note.fitText && note.mode === 'text') {
-            // Need to wait for DOM insertion to measure scrollWidth/scrollHeight accurately
-            requestAnimationFrame(() => applyFitText(noteEl, note));
-        }
       });
+
+      if (note.fitText && note.mode === 'text') {
+          // Need to wait for DOM insertion to measure scrollWidth/scrollHeight accurately
+          requestAnimationFrame(() => applyFitText(noteEl, note));
+      }
 
       return noteEl;
     }
@@ -906,6 +892,7 @@
       if (dockCanvas) dockCanvas.innerHTML = '';
 
       appState.notes.forEach((note) => {
+        if (note.visible === false) return;
         if (canvas) canvas.appendChild(createNoteElement(note, 'canvas'));
         if (dockCanvas) dockCanvas.appendChild(createNoteElement(note, 'dock'));
       });
@@ -1040,11 +1027,28 @@
       element.addEventListener('pointerup', handlePointerUp);
       element.addEventListener('pointercancel', handlePointerUp);
 
-      // Mouse Wheel Handler for Resizing
+      // Mouse Wheel Handler for Resizing & Rotation
       element.addEventListener('wheel', (e) => {
         e.preventDefault();
 
-        if (currentSelectionTarget === 'text') {
+        if (e.shiftKey) {
+            // Rotation
+            const rotStep = 5;
+            const rotDelta = e.deltaY < 0 ? rotStep : -rotStep;
+
+            if (currentSelectionTarget === 'text') {
+                note.textRotation = (note.textRotation || 0) + rotDelta;
+                const contentLayer = element.querySelector('.z-10');
+                if (contentLayer) {
+                    contentLayer.style.transform = `rotate(${note.textRotation}deg)`;
+                }
+            } else {
+                note.rotation = (note.rotation || 0) + rotDelta;
+                element.style.transform = `rotate(${note.rotation || 0}deg)`;
+            }
+            saveState(true);
+            syncDockFormIfSelected(note.id);
+        } else if (currentSelectionTarget === 'text') {
            const fontZoomStep = 2;
            const fontDelta = e.deltaY < 0 ? fontZoomStep : -fontZoomStep;
            note.fontSize = Math.min(150, Math.max(12, (note.fontSize || 20) + fontDelta));
@@ -1482,6 +1486,8 @@
           const sizeW = document.getElementById('editor-size-w');
           const sizeH = document.getElementById('editor-size-h');
           const fontSize = document.getElementById('editor-font-size');
+          const rot = document.getElementById('editor-rotation');
+          const textRot = document.getElementById('editor-text-rotation');
           if (posX) posX.value = note.x;
           if (posY) posY.value = note.y;
           if (sizeW) {
@@ -1499,6 +1505,8 @@
             const fVal = document.getElementById('editor-font-size-val');
             if (fVal) fVal.textContent = `${note.fontSize}px`;
           }
+          if (rot) rot.value = note.rotation || 0;
+          if (textRot) textRot.value = note.textRotation || 0;
         }
       }
     }
