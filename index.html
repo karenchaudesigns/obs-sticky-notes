@@ -930,8 +930,14 @@
           initialTop = note.y;
         }
 
+        const previousSelectedId = currentSelectedNoteId;
         currentSelectedNoteId = note.id;
         updateSelectionIndicators();
+
+        if (currentViewMode === 'dock' && previousSelectedId !== currentSelectedNoteId) {
+          populateEditorForm();
+          renderDockView();
+        }
 
         // Bring to front
         const maxZ = Math.max(0, ...appState.notes.map(n => n.zIndex || 1));
