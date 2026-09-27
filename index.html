@@ -1297,12 +1297,7 @@
     function populateEditorForm() {
       const note = appState.notes.find(n => n.id === currentSelectedNoteId);
       if (!note) {
-        if (appState.notes.length > 0) {
-          currentSelectedNoteId = appState.notes[0].id;
-          populateEditorForm();
-        } else {
-          showEditorEmptyState(true);
-        }
+        showEditorEmptyState(true);
         return;
       }
 
@@ -1749,6 +1744,23 @@
       const btnQuickAdd = document.getElementById('btn-quick-add');
       const btnDockAdd = document.getElementById('dock-btn-add-note');
       const btnCreateFirst = document.getElementById('dock-btn-create-first');
+
+      const handleCanvasPointerDown = (e) => {
+        if (e.target.id === 'notes-canvas' || e.target.id === 'dock-preview-canvas' || e.target.id === 'overlay-container' || e.target.id === 'dock-preview-container') {
+          currentSelectedNoteId = null;
+          updateSelectionIndicators();
+          if (currentViewMode === 'dock') {
+            populateEditorForm();
+            renderDockView();
+          }
+        }
+      };
+
+      const overlayContainer = document.getElementById('overlay-container');
+      if (overlayContainer) overlayContainer.addEventListener('pointerdown', handleCanvasPointerDown);
+
+      const dockPreviewContainer = document.getElementById('dock-preview-container');
+      if (dockPreviewContainer) dockPreviewContainer.addEventListener('pointerdown', handleCanvasPointerDown);
       const btnClearDone = document.getElementById('dock-btn-clear-done');
       const btnExport = document.getElementById('dock-btn-export-json');
       const inputImport = document.getElementById('dock-input-import-json');
