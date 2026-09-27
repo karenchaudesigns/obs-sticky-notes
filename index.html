@@ -629,7 +629,8 @@
           fitText: false,
       isItalic: false,
       textAlign: 'left',
-      padding: { top: 24, right: 20, bottom: 20, left: 20 }
+      padding: { top: 24, right: 20, bottom: 20, left: 20 },
+      isLocked: false
     };
 
 
@@ -794,7 +795,7 @@
     function createNoteElement(note, prefix) {
       const noteEl = document.createElement('div');
       noteEl.id = `${prefix}-note-${note.id}`;
-      noteEl.className = `note-container absolute cursor-grab select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
+      noteEl.className = `note-container absolute ${note.isLocked ? '' : 'cursor-grab'} select-none transition-shadow duration-200 ${note.completed ? 'opacity-65' : ''}`;
       noteEl.style.left = `${note.x}px`;
       noteEl.style.top = `${note.y}px`;
       noteEl.style.width = `${note.width}px`;
@@ -824,7 +825,7 @@
       if (note.mode === 'tasks' && Array.isArray(note.tasks) && note.tasks.length > 0) {
         const tasksItemsHtml = note.tasks.map(t => `
           <div class="flex items-start gap-2 mb-1.5 pointer-events-auto">
-            <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
+            <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} ${note.isLocked ? 'disabled' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
             <label class="cursor-pointer select-none">
               <span class="task-text ${t.done ? 'line-through opacity-50' : ''}">${escapeHtml(t.text)}</span>
             </label>
@@ -858,9 +859,11 @@
           ${innerHtml}
         </div>
         <!-- Resize Grip Handle -->
+        ${note.isLocked ? '' : `
         <div class="resize-handle" data-note-id="${note.id}">
           <svg class="w-3.5 h-3.5 text-zinc-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22 22H20V20H22V22ZM22 16H20V18H22V16ZM18 20H16V22H18V20ZM22 12H20V14H22V12ZM14 20H12V22H14V20ZM18 16H16V18H18V16Z"/></svg>
         </div>
+        `}
       `;
 
       // Attach dragging & resizing event listeners for OBS Interact
@@ -914,6 +917,16 @@
       element.addEventListener('pointerdown', (e) => {
         // If clicking a checkbox, link, or resize grip, do not drag note
         if (e.target.closest('input') || e.target.closest('.resize-handle')) return;
+
+        if (note.isLocked) {
+          currentSelectedNoteId = note.id;
+          updateSelectionIndicators();
+          if (currentViewMode === 'dock') {
+            populateEditorForm();
+            renderDockView();
+          }
+          return;
+        }
 
         isDragging = true;
         startX = e.clientX;
@@ -1037,6 +1050,8 @@
       element.addEventListener('wheel', (e) => {
         e.preventDefault();
 
+        if (note.isLocked) return;
+
         if (e.shiftKey) {
             // Rotation
             const rotStep = 5;
@@ -1104,7 +1119,7 @@
 
     function toggleTaskDone(noteId, taskId, isDone) {
       const note = appState.notes.find(n => n.id === noteId);
-      if (!note || !note.tasks) return;
+      if (!note || !note.tasks || note.isLocked) return;
       const task = note.tasks.find(t => t.id === taskId);
       if (task) {
         task.done = isDone;
@@ -1191,12 +1206,21 @@
                     : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>'}
                 </svg>
               </button>
+              <button data-action="toggle-lock" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-amber-400" title="${note.isLocked ? 'Unlock Note' : 'Lock Note'}">
+                <svg class="w-3.5 h-3.5 ${note.isLocked ? 'text-amber-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  ${note.isLocked
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>'
+                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>'}
+                </svg>
+              </button>
+              ${note.isLocked ? '' : `
               <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
                 <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
               </button>
               <button data-action="delete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-rose-400" title="Delete note">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
+              `}
             </div>
           </div>
           <p class="text-[11px] text-zinc-400 truncate line-clamp-1">${escapeHtml(previewText)}</p>
@@ -1220,8 +1244,16 @@
             renderApp(true);
             return;
           }
+          if (e.target.closest('[data-action="toggle-lock"]')) {
+            e.stopPropagation();
+            note.isLocked = !note.isLocked;
+            saveState(true);
+            renderApp(true);
+            return;
+          }
           if (e.target.closest('[data-action="toggle-complete"]')) {
             e.stopPropagation();
+            if (note.isLocked) return;
             note.completed = !note.completed;
             saveState(true);
             renderApp(false);
@@ -1229,6 +1261,10 @@
           }
           if (e.target.closest('[data-action="delete"]')) {
             e.stopPropagation();
+            if (note.isLocked) {
+              showToast('Cannot delete locked note', 'error');
+              return;
+            }
             deleteNote(note.id);
             return;
           }
@@ -1271,6 +1307,29 @@
       }
 
       showEditorEmptyState(false);
+
+      const contentContainer = document.getElementById('editor-active-content');
+
+      let lockBanner = document.getElementById('lock-banner');
+      if (note.isLocked) {
+        if (!lockBanner) {
+          lockBanner = document.createElement('div');
+          lockBanner.id = 'lock-banner';
+          lockBanner.className = 'bg-amber-900/30 border border-amber-700/50 text-amber-200 p-3 rounded-xl text-xs flex items-center gap-2 mb-4';
+          lockBanner.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg> This note is locked. Unlock it in the sidebar to edit.';
+          contentContainer.parentNode.insertBefore(lockBanner, contentContainer);
+        }
+        contentContainer.classList.add('opacity-50', 'pointer-events-none');
+        contentContainer.querySelectorAll('input, select, textarea, button').forEach(el => {
+            el.setAttribute('tabindex', '-1');
+        });
+      } else {
+        if (lockBanner) lockBanner.remove();
+        contentContainer.classList.remove('opacity-50', 'pointer-events-none');
+        contentContainer.querySelectorAll('input, select, textarea, button').forEach(el => {
+            el.removeAttribute('tabindex');
+        });
+      }
 
       // Mode toggling (Text vs Tasks)
       const btnText = document.getElementById('editor-mode-text');
@@ -1547,7 +1606,8 @@
           fitText: false,
         isItalic: false,
         textAlign: 'left',
-        padding: { top: 22, right: 20, bottom: 20, left: 20 }
+        padding: { top: 22, right: 20, bottom: 20, left: 20 },
+        isLocked: false
       };
 
       appState.notes.push(newNote);
@@ -1558,6 +1618,11 @@
     }
 
     function deleteNote(noteId) {
+      const note = appState.notes.find(n => n.id === noteId);
+      if (note && note.isLocked) {
+        showToast('Cannot delete locked note', 'error');
+        return;
+      }
       appState.notes = appState.notes.filter(n => n.id !== noteId);
       if (currentSelectedNoteId === noteId) {
         currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
@@ -1707,7 +1772,7 @@
       if (btnClearDone) {
         btnClearDone.addEventListener('click', () => {
           const prevCount = appState.notes.length;
-          appState.notes = appState.notes.filter(n => !n.completed);
+          appState.notes = appState.notes.filter(n => !n.completed || n.isLocked);
           if (appState.notes.length !== prevCount) {
             currentSelectedNoteId = appState.notes.length > 0 ? appState.notes[0].id : null;
             saveState(true);
