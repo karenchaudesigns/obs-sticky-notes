@@ -910,6 +910,7 @@
       let initialTop = 0;
       let initialWidth = 0;
       let initialHeight = 0;
+      let initialPadding = null;
 
       const resizeGrip = element.querySelector('.resize-handle');
 
@@ -971,6 +972,7 @@
           startY = e.clientY;
           initialWidth = note.width;
           initialHeight = note.height;
+          initialPadding = note.padding ? { ...note.padding } : { top: 20, right: 20, bottom: 20, left: 20 };
           resizeGrip.setPointerCapture(e.pointerId);
           e.preventDefault();
         });
@@ -1018,8 +1020,31 @@
           }
           const deltaX = (e.clientX - startX) / scale;
           const deltaY = (e.clientY - startY) / scale;
-          note.width = Math.max(140, Math.round(initialWidth + deltaX));
-          note.height = Math.max(140, Math.round(initialHeight + deltaY));
+          const newWidth = Math.max(140, Math.round(initialWidth + deltaX));
+          const newHeight = Math.max(140, Math.round(initialHeight + deltaY));
+
+          if (initialWidth > 0 && newWidth !== note.width) {
+             const ratioW = newWidth / initialWidth;
+             const ratioH = newHeight / initialHeight;
+             if (!note.padding) note.padding = { top: 20, right: 20, bottom: 20, left: 20 };
+             if (initialPadding) {
+                note.padding.top = Math.round(initialPadding.top * ratioH);
+                note.padding.bottom = Math.round(initialPadding.bottom * ratioH);
+                note.padding.left = Math.round(initialPadding.left * ratioW);
+                note.padding.right = Math.round(initialPadding.right * ratioW);
+             }
+
+             const contentLayer = element.querySelector('.z-10');
+             if (contentLayer) {
+                contentLayer.style.top = `${note.padding.top}px`;
+                contentLayer.style.bottom = `${note.padding.bottom}px`;
+                contentLayer.style.left = `${note.padding.left}px`;
+                contentLayer.style.right = `${note.padding.right}px`;
+             }
+          }
+
+          note.width = newWidth;
+          note.height = newHeight;
           element.style.width = `${note.width}px`;
           element.style.height = `${note.height}px`;
           if (note.fitText) {
@@ -1092,9 +1117,22 @@
 
         if (oldWidth > 0 && note.width !== oldWidth) {
           const ratio = note.width / oldWidth;
+          if (!note.padding) note.padding = { top: 20, right: 20, bottom: 20, left: 20 };
+          note.padding.top = Math.round(note.padding.top * ratio);
+          note.padding.bottom = Math.round(note.padding.bottom * ratio);
+          note.padding.left = Math.round(note.padding.left * ratio);
+          note.padding.right = Math.round(note.padding.right * ratio);
+
+          const contentLayer = element.querySelector('.z-10');
+          if (contentLayer) {
+            contentLayer.style.top = `${note.padding.top}px`;
+            contentLayer.style.bottom = `${note.padding.bottom}px`;
+            contentLayer.style.left = `${note.padding.left}px`;
+            contentLayer.style.right = `${note.padding.right}px`;
+          }
+
           if (!note.fitText) {
             note.fontSize = Math.min(150, Math.max(12, Math.round((note.fontSize || 20) * ratio)));
-            const contentLayer = element.querySelector('.z-10');
             if (contentLayer) {
               contentLayer.style.fontSize = `${note.fontSize}px`;
             }
@@ -1567,6 +1605,18 @@
           }
           if (rot) rot.value = note.rotation || 0;
           if (textRot) textRot.value = note.textRotation || 0;
+
+          if (note.padding) {
+             const padTop = document.getElementById('editor-pad-top');
+             const padBottom = document.getElementById('editor-pad-bottom');
+             const padLeft = document.getElementById('editor-pad-left');
+             const padRight = document.getElementById('editor-pad-right');
+
+             if (padTop) padTop.value = note.padding.top;
+             if (padBottom) padBottom.value = note.padding.bottom;
+             if (padLeft) padLeft.value = note.padding.left;
+             if (padRight) padRight.value = note.padding.right;
+          }
         }
       }
     }
