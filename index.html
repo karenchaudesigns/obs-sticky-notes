@@ -953,11 +953,6 @@
           renderDockView();
         }
 
-        // Bring to front
-        const maxZ = Math.max(0, ...appState.notes.map(n => n.zIndex || 1));
-        note.zIndex = maxZ + 1;
-        element.style.zIndex = note.zIndex;
-
         element.setPointerCapture(e.pointerId);
         element.classList.add('cursor-grabbing');
         e.preventDefault();
