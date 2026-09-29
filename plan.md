@@ -1,6 +1,22 @@
-1. **Explore `index.html`**: Locate the `attachNoteInteractions` function where drag and drop functionality is implemented for sticky notes.
-2. **Add Event Listener**: Implement a `wheel` event listener on the `element` to handle mouse scroll events.
-3. **Calculate New Dimensions**: In the event listener, read `e.deltaY` to determine the scroll direction (up for enlarge, down for shrink) and calculate the new width and height by multiplying the current dimensions by a scale factor (e.g. 1.05 / 0.95) or a constant increment. Ensure they do not drop below the minimum size (140px).
-4. **Apply New Dimensions**: Update `note.width` and `note.height`, apply them to `element.style`, call `saveState(true)`, and call `syncDockFormIfSelected(note.id)` to synchronize the OBS Dock form.
-5. **Complete pre-commit steps**: Run required pre-commit verifications.
-6. **Submit**: Once verified, commit the changes with an appropriate message and branch name.
+1. **Remove Typography & Layout Section from Bottom Panel:**
+   - In `index.html`, remove the `Typography & Layout` section from the bottom panel editor. This includes removing the elements for `editor-font-family`, `editor-font-size`, `editor-font-color`, `editor-btn-reset-type`, format buttons (`.format-btn`), alignment buttons (`.align-btn`), and fit text checkbox (`editor-fit-text`).
+   - Remove JS code that populates and listens to events on these bottom panel typography elements. (e.g. `document.getElementById('editor-font-family').value = ...`, `document.getElementById('editor-font-size').addEventListener...`)
+
+2. **Add Font and Text Color to Popup Text Editor:**
+   - Add `<select>` for font family and `<input type="color">` for text color inside the `#popup-text-editor`.
+   - Update `setupEventListeners` and `element.addEventListener('click')` logic in `index.html` to populate and handle changes for the new font family and text color inputs in the popup.
+   - We might also need to move the fit-text checkbox to the popup? No, the prompt only asks for "font and text color".
+
+3. **Change L C R Buttons to Have Typical Icons:**
+   - The user asked to change the L C R (Left, Center, Right) buttons to have typical icons.
+   - Locate `.popup-align-btn` inside `#popup-text-editor`.
+   - Replace the text `L`, `C`, `R` with SVG icons representing text alignment (Left, Center, Right).
+
+4. **Verify UI:**
+   - Run tests and visually inspect `index.html` via local server to ensure popup behaves as expected and the bottom panel correctly lacks the typography section.
+
+5. **Pre Commit Checks:**
+   - Ensure proper testing, verification, review, and reflection are done.
+
+6. **Submit:**
+   - Commit and push changes.

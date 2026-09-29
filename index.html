@@ -287,8 +287,8 @@
               </label>
             </div>
 
-            <div class="flex items-center justify-between pt-3 border-t border-zinc-800/80 mt-3"><label class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</label><button id="editor-btn-reset-type" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Typography Settings">Reset</button></div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="hidden flex items-center justify-between pt-3 border-t border-zinc-800/80 mt-3"><label class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</label><button id="editor-btn-reset-type" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Typography Settings">Reset</button></div>
+            <div class="hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label class="text-xs text-zinc-300 block mb-1">Font Family</label>
                 <select id="editor-font-family" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
@@ -1184,6 +1184,8 @@
 
             // Show popup
             popup.classList.remove('hidden');
+            document.getElementById('popup-font-family').value = note.fontFamily || 'font-handwriting';
+            document.getElementById('popup-font-color').value = note.fontColor || '#1f2937';
 
             // Focus textarea
             textarea.focus();
@@ -1774,6 +1776,40 @@
       const popupEditor = document.getElementById('popup-text-editor');
       const popupTextarea = document.getElementById('popup-textarea');
       const popupClose = document.getElementById('popup-close');
+
+      const popupFontFamily = document.getElementById('popup-font-family');
+      if (popupFontFamily) {
+          popupFontFamily.addEventListener('change', (e) => {
+              const noteId = popupEditor.dataset.noteId;
+              if (!noteId) return;
+              const note = appState.notes.find(n => n.id === noteId);
+              if (note) {
+                  note.fontFamily = e.target.value;
+                  saveState(true);
+                  renderOverlayCanvas();
+                  if (currentSelectedNoteId === noteId) {
+                      populateEditorForm();
+                  }
+              }
+          });
+      }
+
+      const popupFontColor = document.getElementById('popup-font-color');
+      if (popupFontColor) {
+          popupFontColor.addEventListener('input', (e) => {
+              const noteId = popupEditor.dataset.noteId;
+              if (!noteId) return;
+              const note = appState.notes.find(n => n.id === noteId);
+              if (note) {
+                  note.fontColor = e.target.value;
+                  saveState(true);
+                  renderOverlayCanvas();
+                  if (currentSelectedNoteId === noteId) {
+                      populateEditorForm();
+                  }
+              }
+          });
+      }
 
       if (popupTextarea) {
           popupTextarea.addEventListener('input', (e) => {
@@ -2368,15 +2404,35 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
     </div>
+
+    <div class="flex justify-between items-center mb-2 gap-2">
+      <select id="popup-font-family" class="flex-1 bg-zinc-950 border border-zinc-700 rounded-md p-1 text-xs text-zinc-200">
+        <option value="font-handwriting">Caveat (Handwritten)</option>
+        <option value="font-kalam">Kalam (Casual)</option>
+        <option value="font-patrick">Patrick Hand</option>
+        <option value="font-sans">Inter (Modern Clean)</option>
+        <option value="font-space">Space Grotesk (Tech)</option>
+      </select>
+      <input type="color" id="popup-font-color" class="w-6 h-6 rounded border-0 cursor-pointer bg-transparent" title="Text Color">
+    </div>
     <div class="flex justify-between items-center mb-2 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+
       <div class="flex gap-1">
         <button data-format="bold" class="popup-format-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
         <button data-format="italic" class="popup-format-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
       </div>
       <div class="flex gap-1 border-l border-zinc-700 pl-2 ml-1">
-        <button data-align="left" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
-        <button data-align="center" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
-        <button data-align="right" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
+
+        <button data-align="left" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300" title="Align Left">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h16"/></svg>
+        </button>
+        <button data-align="center" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300" title="Align Center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M4 18h16"/></svg>
+        </button>
+        <button data-align="right" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300" title="Align Right">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M4 18h16"/></svg>
+        </button>
+
       </div>
     </div>
     <textarea id="popup-textarea" rows="4" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
