@@ -1641,6 +1641,7 @@
     function addNewNote() {
       const id = 'note-' + Date.now();
       const randomPreset = BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)];
+      const maxZIndex = appState.notes.reduce((max, note) => Math.max(max, note.zIndex || 0), 0);
       const newNote = {
         id: id,
         mode: 'text',
@@ -1655,7 +1656,7 @@
         height: 260,
         rotation: Math.floor(Math.random() * 7) - 3, // -3 to +3 degrees
         textRotation: 0,
-        zIndex: appState.notes.length + 1,
+        zIndex: maxZIndex + 1,
         bgPresetId: randomPreset.id,
         customBgUrl: '',
         customBgFilter: 'none',
@@ -1699,11 +1700,12 @@
       if (!note) return;
 
       const clone = JSON.parse(JSON.stringify(note));
+      const maxZIndex = appState.notes.reduce((max, n) => Math.max(max, n.zIndex || 0), 0);
       clone.id = 'note-' + Date.now();
       clone.x += 35;
       clone.y += 35;
       clone.rotation = Math.floor(Math.random() * 7) - 3;
-      clone.zIndex = appState.notes.length + 2;
+      clone.zIndex = maxZIndex + 1;
 
       appState.notes.push(clone);
       currentSelectedNoteId = clone.id;
