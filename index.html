@@ -1163,6 +1163,25 @@
             // Set active note id
             popup.dataset.noteId = note.id;
 
+            // Update formatting button states
+            document.querySelectorAll('.popup-format-btn').forEach(btn => {
+              const format = btn.getAttribute('data-format');
+              if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
+                btn.classList.add('bg-indigo-600', 'text-white');
+              } else {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+              }
+            });
+
+            // Update alignment button states
+            document.querySelectorAll('.popup-align-btn').forEach(btn => {
+              if (btn.getAttribute('data-align') === (note.textAlign || 'left')) {
+                btn.classList.add('bg-indigo-600', 'text-white');
+              } else {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+              }
+            });
+
             // Show popup
             popup.classList.remove('hidden');
 
@@ -1783,6 +1802,63 @@
           });
       }
 
+      // Popup formatting buttons
+      document.querySelectorAll('.popup-format-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const noteId = popupEditor.dataset.noteId;
+          if (!noteId) return;
+
+          const format = btn.getAttribute('data-format');
+          const note = appState.notes.find(n => n.id === noteId);
+          if (note) {
+            if (format === 'bold') note.isBold = !note.isBold;
+            if (format === 'italic') note.isItalic = !note.isItalic;
+
+            // Toggle active visual state locally
+            if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
+              btn.classList.add('bg-indigo-600', 'text-white');
+            } else {
+              btn.classList.remove('bg-indigo-600', 'text-white');
+            }
+
+            saveState(true);
+            renderOverlayCanvas();
+            if (currentSelectedNoteId === noteId) {
+              populateEditorForm();
+            }
+          }
+        });
+      });
+
+      // Popup alignment buttons
+      document.querySelectorAll('.popup-align-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const noteId = popupEditor.dataset.noteId;
+          if (!noteId) return;
+
+          const align = btn.getAttribute('data-align');
+          const note = appState.notes.find(n => n.id === noteId);
+          if (note) {
+            note.textAlign = align;
+
+            // Update active visual state for all align buttons
+            document.querySelectorAll('.popup-align-btn').forEach(aBtn => {
+              if (aBtn.getAttribute('data-align') === note.textAlign) {
+                aBtn.classList.add('bg-indigo-600', 'text-white');
+              } else {
+                aBtn.classList.remove('bg-indigo-600', 'text-white');
+              }
+            });
+
+            saveState(true);
+            renderOverlayCanvas();
+            if (currentSelectedNoteId === noteId) {
+              populateEditorForm();
+            }
+          }
+        });
+      });
+
 
       // Resets
       document.getElementById('editor-btn-reset-bg').addEventListener('click', () => {
@@ -2291,6 +2367,17 @@
       <button id="popup-close" class="text-zinc-400 hover:text-zinc-200">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
+    </div>
+    <div class="flex justify-between items-center mb-2 bg-zinc-950 p-1 rounded-md border border-zinc-700">
+      <div class="flex gap-1">
+        <button data-format="bold" class="popup-format-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
+        <button data-format="italic" class="popup-format-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
+      </div>
+      <div class="flex gap-1 border-l border-zinc-700 pl-2 ml-1">
+        <button data-align="left" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
+        <button data-align="center" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
+        <button data-align="right" class="popup-align-btn p-1 px-2 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
+      </div>
     </div>
     <textarea id="popup-textarea" rows="4" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
   </div>
