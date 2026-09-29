@@ -187,10 +187,6 @@
       </div>
       
       <div class="flex items-center gap-2">
-        <button id="dock-btn-add-note" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          New Note
-        </button>
         <button id="dock-btn-switch-overlay" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 border border-zinc-700 transition-colors" title="Preview Overlay Canvas">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           Overlay
@@ -237,9 +233,20 @@
       <!-- Active Note Detailed Settings & Editor -->
       <section id="dock-editor-panel" class="flex-1 overflow-y-auto p-4 md:p-6 bg-zinc-950 space-y-6">
 
-        <!-- Interactive Preview -->
-        <div id="dock-preview-container" class="relative w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-          <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+        <!-- Interactive Preview & Memo Pads -->
+        <div class="flex gap-4 items-start w-full">
+          <div id="dock-preview-container" class="relative flex-1 aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+            <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+          </div>
+
+          <!-- Memo Pads Panel -->
+          <div id="memo-pads-panel" class="w-16 flex-shrink-0 bg-zinc-900 border border-zinc-800 rounded-xl p-2 flex flex-col items-center gap-3 shadow-sm h-full">
+            <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider text-center w-full border-b border-zinc-800 pb-2 mb-1">Pads</div>
+            <div class="memo-pad-option w-10 h-10 rounded shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform" draggable="true" data-preset="classic-yellow" style="background-color: #FFF740;" title="Yellow"></div>
+            <div class="memo-pad-option w-10 h-10 rounded shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform" draggable="true" data-preset="soft-pink" style="background-color: #FF7EB9;" title="Pink"></div>
+            <div class="memo-pad-option w-10 h-10 rounded shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform" draggable="true" data-preset="pastel-cyan" style="background-color: #7AFCFF;" title="Cyan"></div>
+            <div class="memo-pad-option w-10 h-10 rounded shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform" draggable="true" data-preset="mint-green" style="background-color: #6bf178;" title="Green"></div>
+          </div>
         </div>
 
         <div id="editor-empty-state" class="h-full flex flex-col items-center justify-center text-center p-8 text-zinc-500">
@@ -1657,9 +1664,10 @@
       }
     }
 
-    function addNewNote() {
+    function addNewNote(options = {}) {
       const id = 'note-' + Date.now();
-      const randomPreset = BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)];
+      const presetId = options.presetId || BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)].id;
+      const preset = BACKGROUND_PRESETS.find(p => p.id === presetId) || BACKGROUND_PRESETS[0];
       const maxZIndex = appState.notes.reduce((max, note) => Math.max(max, note.zIndex || 0), 0);
       const newNote = {
         id: id,
@@ -1668,24 +1676,21 @@
         tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
         completed: false,
         visible: true,
-          visible: true,
-        x: 80 + (appState.notes.length * 30) % 400,
-        y: 80 + (appState.notes.length * 25) % 300,
+        x: options.x !== undefined ? options.x : 80 + (appState.notes.length * 30) % 400,
+        y: options.y !== undefined ? options.y : 80 + (appState.notes.length * 25) % 300,
         width: 260,
         height: 260,
         rotation: Math.floor(Math.random() * 7) - 3, // -3 to +3 degrees
         textRotation: 0,
         zIndex: maxZIndex + 1,
-        bgPresetId: randomPreset.id,
+        bgPresetId: preset.id,
         customBgUrl: '',
         customBgFilter: 'none',
         customBgFilterStrength: 100,
         fontFamily: 'font-handwriting',
         fontSize: 22,
-        fontColor: randomPreset.textColor,
-
+        fontColor: preset.textColor,
         fitText: false,
-          fitText: false,
         isItalic: false,
         textAlign: 'left',
         padding: { top: 22, right: 20, bottom: 20, left: 20 },
@@ -1920,7 +1925,40 @@
       const btnOpenDock = document.getElementById('btn-open-dock-view');
       const btnSwitchOverlay = document.getElementById('dock-btn-switch-overlay');
       const btnQuickAdd = document.getElementById('btn-quick-add');
-      const btnDockAdd = document.getElementById('dock-btn-add-note');
+      // Add note functionality for drag/drop logic on memo pads
+      const memoPads = document.querySelectorAll('.memo-pad-option');
+      memoPads.forEach(pad => {
+        pad.addEventListener('click', (e) => {
+          addNewNote({ presetId: e.target.getAttribute('data-preset') });
+        });
+        pad.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', e.target.getAttribute('data-preset'));
+          e.dataTransfer.effectAllowed = 'copy';
+        });
+      });
+
+      const dockCanvas = document.getElementById('dock-preview-canvas');
+      if (dockCanvas) {
+        dockCanvas.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        });
+        dockCanvas.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const presetId = e.dataTransfer.getData('text/plain');
+          if (presetId) {
+            const rect = dockCanvas.getBoundingClientRect();
+            let x = (e.clientX - rect.left) / dockPreviewScale;
+            let y = (e.clientY - rect.top) / dockPreviewScale;
+
+            // Adjust to center the note on drop (default note size is 260x260)
+            x = x - (260 / 2);
+            y = y - (260 / 2);
+
+            addNewNote({ presetId, x, y });
+          }
+        });
+      }
       const btnCreateFirst = document.getElementById('dock-btn-create-first');
 
       const handleCanvasPointerDown = (e) => {
@@ -1952,9 +1990,7 @@
       if (btnQuickAdd) {
         btnQuickAdd.addEventListener('click', addNewNote);
       }
-      if (btnDockAdd) {
-        btnDockAdd.addEventListener('click', addNewNote);
-      }
+
       if (btnCreateFirst) {
         btnCreateFirst.addEventListener('click', addNewNote);
       }
