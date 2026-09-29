@@ -286,6 +286,49 @@
                 <span class="text-xs text-zinc-300 font-medium">Mark entire note as completed</span>
               </label>
             </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-zinc-800/80 mt-3"><label class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</label><button id="editor-btn-reset-type" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Typography Settings">Reset</button></div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Family</label>
+                <select id="editor-font-family" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
+                  <option value="font-handwriting">Caveat (Handwritten)</option>
+                  <option value="font-kalam">Kalam (Casual)</option>
+                  <option value="font-patrick">Patrick Hand</option>
+                  <option value="font-sans">Inter (Modern Clean)</option>
+                  <option value="font-space">Space Grotesk (Tech)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Size (px)</label>
+                <input type="range" id="editor-font-size" min="12" max="150" step="1" class="w-full accent-indigo-500">
+                <span id="editor-font-size-val" class="text-[11px] text-zinc-400 float-right">20px</span>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Font Color</label>
+                <div class="flex items-center gap-2">
+                  <input type="color" id="editor-font-color" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent">
+                  <span id="editor-font-color-hex" class="text-xs font-mono text-zinc-400">#2d3748</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs text-zinc-300 block mb-1">Format & Alignment</label>
+                <div class="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700 mb-2">
+                  <button data-format="bold" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
+                  <button data-format="italic" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
+                  <button data-align="left" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
+                  <button data-align="center" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
+                  <button data-align="right" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="editor-fit-text" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-zinc-800 border-zinc-700">
+                  <span class="text-[11px] text-zinc-300 font-medium">Fit text to note</span>
+                </label>
+              </div>
+
           </div>
 
           <!-- Background & Artwork Customization -->
@@ -367,52 +410,6 @@
               <div>
                 <label class="text-[11px] text-zinc-400 block mb-1">Padding Right (px)</label>
                 <input type="number" id="editor-pad-right" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-            </div>
-          </div>
-
-          <!-- Typography & Text Placement -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
-            <div class="flex items-center justify-between"><h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Typography &amp; Layout</h3><button id="editor-btn-reset-type" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Typography Settings">Reset</button></div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <label class="text-xs text-zinc-300 block mb-1">Font Family</label>
-                <select id="editor-font-family" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-                  <option value="font-handwriting">Caveat (Handwritten)</option>
-                  <option value="font-kalam">Kalam (Casual)</option>
-                  <option value="font-patrick">Patrick Hand</option>
-                  <option value="font-sans">Inter (Modern Clean)</option>
-                  <option value="font-space">Space Grotesk (Tech)</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="text-xs text-zinc-300 block mb-1">Font Size (px)</label>
-                <input type="range" id="editor-font-size" min="12" max="150" step="1" class="w-full accent-indigo-500">
-                <span id="editor-font-size-val" class="text-[11px] text-zinc-400 float-right">20px</span>
-              </div>
-
-              <div>
-                <label class="text-xs text-zinc-300 block mb-1">Font Color</label>
-                <div class="flex items-center gap-2">
-                  <input type="color" id="editor-font-color" class="w-8 h-8 rounded border-0 cursor-pointer bg-transparent">
-                  <span id="editor-font-color-hex" class="text-xs font-mono text-zinc-400">#2d3748</span>
-                </div>
-              </div>
-
-              <div>
-                <label class="text-xs text-zinc-300 block mb-1">Format & Alignment</label>
-                <div class="grid grid-cols-5 gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-700 mb-2">
-                  <button data-format="bold" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 font-bold">B</button>
-                  <button data-format="italic" class="format-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300 italic">I</button>
-                  <button data-align="left" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">L</button>
-                  <button data-align="center" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">C</button>
-                  <button data-align="right" class="align-btn p-1 text-xs rounded hover:bg-zinc-800 text-zinc-300">R</button>
-                </div>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" id="editor-fit-text" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-zinc-800 border-zinc-700">
-                  <span class="text-[11px] text-zinc-300 font-medium">Fit text to note</span>
-                </label>
               </div>
             </div>
           </div>
@@ -1148,6 +1145,31 @@
         resizeGrip.addEventListener('pointerup', handlePointerUp);
         resizeGrip.addEventListener('pointercancel', handlePointerUp);
       }
+
+      // Click event for popup text editor
+      element.addEventListener('click', (e) => {
+        if (note.mode !== 'text') return;
+        if (e.target.closest('.z-10') || currentSelectionTarget === 'text') {
+            const popup = document.getElementById('popup-text-editor');
+            const textarea = document.getElementById('popup-textarea');
+
+            // Set position based on click
+            popup.style.left = `${e.clientX + 10}px`;
+            popup.style.top = `${e.clientY + 10}px`;
+
+            // Populate text
+            textarea.value = note.text || '';
+
+            // Set active note id
+            popup.dataset.noteId = note.id;
+
+            // Show popup
+            popup.classList.remove('hidden');
+
+            // Focus textarea
+            textarea.focus();
+        }
+      });
     }
 
     function toggleTaskDone(noteId, taskId, isDone) {
@@ -1727,6 +1749,39 @@
 
     function setupEventListeners() {
 
+      // Popup Text Editor Listeners
+      const popupEditor = document.getElementById('popup-text-editor');
+      const popupTextarea = document.getElementById('popup-textarea');
+      const popupClose = document.getElementById('popup-close');
+
+      if (popupTextarea) {
+          popupTextarea.addEventListener('input', (e) => {
+              const noteId = popupEditor.dataset.noteId;
+              if (!noteId) return;
+
+              const note = appState.notes.find(n => n.id === noteId);
+              if (note) {
+                  note.text = e.target.value;
+
+                  // Also sync the main editor textarea if it's the currently selected note
+                  if (currentSelectedNoteId === noteId) {
+                      const mainTextarea = document.getElementById('editor-note-text');
+                      if (mainTextarea) mainTextarea.value = note.text;
+                  }
+
+                  saveState(true);
+                  renderOverlayCanvas();
+              }
+          });
+      }
+
+      if (popupClose) {
+          popupClose.addEventListener('click', () => {
+              popupEditor.classList.add('hidden');
+          });
+      }
+
+
       // Resets
       document.getElementById('editor-btn-reset-bg').addEventListener('click', () => {
         const note = appState.notes.find(n => n.id === currentSelectedNoteId);
@@ -2226,5 +2281,17 @@
       renderApp(true);
     });
   </script>
+
+  <!-- POPUP TEXT EDITOR -->
+  <div id="popup-text-editor" class="hidden absolute z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-3" style="width: 300px;">
+    <div class="flex justify-between items-center mb-2">
+      <span class="text-xs font-semibold text-zinc-300">Edit Note Text</span>
+      <button id="popup-close" class="text-zinc-400 hover:text-zinc-200">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <textarea id="popup-textarea" rows="4" class="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+  </div>
+
 </body>
 </html>
