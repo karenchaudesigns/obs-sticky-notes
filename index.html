@@ -187,10 +187,6 @@
       </div>
       
       <div class="flex items-center gap-2">
-        <button id="dock-btn-add-note" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          New Note
-        </button>
         <button id="dock-btn-switch-overlay" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 border border-zinc-700 transition-colors" title="Preview Overlay Canvas">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           Overlay
@@ -237,9 +233,20 @@
       <!-- Active Note Detailed Settings & Editor -->
       <section id="dock-editor-panel" class="flex-1 overflow-y-auto p-4 md:p-6 bg-zinc-950 space-y-6">
 
-        <!-- Interactive Preview -->
-        <div id="dock-preview-container" class="relative w-full aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-          <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+        <!-- Interactive Preview and Memo Pads Panel -->
+        <div class="flex flex-col xl:flex-row gap-6">
+          <div id="dock-preview-container" class="relative flex-1 aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+            <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+          </div>
+
+          <!-- Memo Pads Interactive Panel -->
+          <div id="memo-pads-panel" class="w-full xl:w-64 flex-shrink-0 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col max-h-[300px] xl:max-h-[none]">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">Memo Pads</h3>
+            <p class="text-[11px] text-zinc-500 mb-4">Drag and drop onto canvas to add note</p>
+            <div id="memo-pads-list" class="flex flex-row xl:flex-col gap-3 overflow-x-auto xl:overflow-y-auto overflow-y-hidden xl:overflow-x-hidden pb-2 xl:pb-0 pr-2 flex-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
         </div>
 
         <div id="editor-empty-state" class="h-full flex flex-col items-center justify-center text-center p-8 text-zinc-500">
@@ -1659,10 +1666,15 @@
       }
     }
 
-    function addNewNote() {
+    function addNewNote(options = {}) {
       const id = 'note-' + Date.now();
-      const randomPreset = BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)];
+      const presetId = options.bgPresetId || BACKGROUND_PRESETS[Math.floor(Math.random() * BACKGROUND_PRESETS.length)].id;
+      const preset = BACKGROUND_PRESETS.find(p => p.id === presetId) || BACKGROUND_PRESETS[0];
       const maxZIndex = appState.notes.reduce((max, note) => Math.max(max, note.zIndex || 0), 0);
+
+      const defaultX = 80 + (appState.notes.length * 30) % 400;
+      const defaultY = 80 + (appState.notes.length * 25) % 300;
+
       const newNote = {
         id: id,
         mode: 'text',
@@ -1670,24 +1682,21 @@
         tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
         completed: false,
         visible: true,
-          visible: true,
-        x: 80 + (appState.notes.length * 30) % 400,
-        y: 80 + (appState.notes.length * 25) % 300,
+        x: options.x !== undefined ? options.x : defaultX,
+        y: options.y !== undefined ? options.y : defaultY,
         width: 260,
         height: 260,
         rotation: Math.floor(Math.random() * 7) - 3, // -3 to +3 degrees
         textRotation: 0,
         zIndex: maxZIndex + 1,
-        bgPresetId: randomPreset.id,
+        bgPresetId: preset.id,
         customBgUrl: '',
         customBgFilter: 'none',
         customBgFilterStrength: 100,
         fontFamily: 'font-handwriting',
         fontSize: 22,
-        fontColor: randomPreset.textColor,
-
+        fontColor: preset.textColor,
         fitText: false,
-          fitText: false,
         isItalic: false,
         textAlign: 'left',
         padding: { top: 22, right: 20, bottom: 20, left: 20 },
@@ -1956,7 +1965,6 @@
       const btnOpenDock = document.getElementById('btn-open-dock-view');
       const btnSwitchOverlay = document.getElementById('dock-btn-switch-overlay');
       const btnQuickAdd = document.getElementById('btn-quick-add');
-      const btnDockAdd = document.getElementById('dock-btn-add-note');
       const btnCreateFirst = document.getElementById('dock-btn-create-first');
 
       const handleCanvasPointerDown = (e) => {
@@ -1974,7 +1982,30 @@
       if (overlayContainer) overlayContainer.addEventListener('pointerdown', handleCanvasPointerDown);
 
       const dockPreviewContainer = document.getElementById('dock-preview-container');
-      if (dockPreviewContainer) dockPreviewContainer.addEventListener('pointerdown', handleCanvasPointerDown);
+      if (dockPreviewContainer) {
+        dockPreviewContainer.addEventListener('pointerdown', handleCanvasPointerDown);
+
+        dockPreviewContainer.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        });
+
+        dockPreviewContainer.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const presetId = e.dataTransfer.getData('text/plain');
+          if (presetId) {
+            const rect = dockPreviewContainer.getBoundingClientRect();
+            let x = (e.clientX - rect.left) / dockPreviewScale;
+            let y = (e.clientY - rect.top) / dockPreviewScale;
+
+            // Adjust to center the drop exactly where cursor is (approx 130px offset for half size)
+            x = Math.max(0, x - 130);
+            y = Math.max(0, y - 130);
+
+            addNewNote({ x, y, bgPresetId: presetId });
+          }
+        });
+      }
       const btnClearDone = document.getElementById('dock-btn-clear-done');
       const btnExport = document.getElementById('dock-btn-export-json');
       const inputImport = document.getElementById('dock-input-import-json');
@@ -1986,13 +2017,10 @@
         btnSwitchOverlay.addEventListener('click', () => switchViewMode('overlay'));
       }
       if (btnQuickAdd) {
-        btnQuickAdd.addEventListener('click', addNewNote);
-      }
-      if (btnDockAdd) {
-        btnDockAdd.addEventListener('click', addNewNote);
+        btnQuickAdd.addEventListener('click', () => addNewNote());
       }
       if (btnCreateFirst) {
-        btnCreateFirst.addEventListener('click', addNewNote);
+        btnCreateFirst.addEventListener('click', () => addNewNote());
       }
 
       if (btnClearDone) {
@@ -2358,10 +2386,50 @@
       }
     }
 
+    function renderMemoPadsPanel() {
+      const listEl = document.getElementById('memo-pads-list');
+      if (!listEl) return;
+
+      listEl.innerHTML = '';
+
+      BACKGROUND_PRESETS.forEach(preset => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'w-16 h-16 xl:w-full xl:h-16 flex-shrink-0 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform relative group';
+        itemEl.draggable = true;
+        itemEl.dataset.presetId = preset.id;
+
+        itemEl.innerHTML = `
+          <div class="w-full h-full rounded-md shadow-sm border border-zinc-700/50 overflow-hidden" style="background-color: ${preset.color};">
+            ${preset.renderSvg('memo-pad-' + preset.id)}
+          </div>
+          <div class="hidden xl:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 items-center justify-center transition-opacity rounded-md pointer-events-none">
+            <span class="text-xs font-semibold text-white drop-shadow-md">+ Add</span>
+          </div>
+        `;
+
+        itemEl.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', preset.id);
+          e.dataTransfer.effectAllowed = 'copy';
+          itemEl.classList.add('opacity-50');
+        });
+
+        itemEl.addEventListener('dragend', () => {
+          itemEl.classList.remove('opacity-50');
+        });
+
+        itemEl.addEventListener('click', () => {
+          addNewNote({ bgPresetId: preset.id });
+        });
+
+        listEl.appendChild(itemEl);
+      });
+    }
+
     function renderApp(refreshDockList = true) {
       renderOverlayCanvas();
       if (currentViewMode === 'dock' && refreshDockList) {
         renderDockView();
+        renderMemoPadsPanel();
       }
     }
 

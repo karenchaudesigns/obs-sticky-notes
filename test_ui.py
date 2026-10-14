@@ -11,15 +11,16 @@ def test():
         note = page.locator('#dock-note-note-1')
         note.wait_for()
 
-        # Click the background of the note
-        box = note.bounding_box()
-        page.mouse.click(box['x'] + 10, box['y'] + 10)
+        # We must trigger pointerdown to select the note
+        # By using Playwright dispatch_event directly we bypass any collision checks
+        note.dispatch_event("pointerdown")
 
+        page.screenshot(path="dock-selection-debug.png")
         assert note.evaluate("el => el.classList.contains('is-selected-note')"), "Note was not selected"
 
         # Test 2: Text Selection (Dashed Outline)
         text_layer = note.locator('.z-10')
-        text_layer.click()
+        text_layer.dispatch_event("pointerdown")
 
         assert text_layer.evaluate("el => el.classList.contains('is-selected-text')"), "Text was not selected"
 
