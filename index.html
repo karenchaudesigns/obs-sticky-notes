@@ -1157,47 +1157,53 @@
       element.addEventListener('click', (e) => {
         if (note.mode !== 'text') return;
         if (e.target.closest('.z-10') || currentSelectionTarget === 'text') {
-            const popup = document.getElementById('popup-text-editor');
-            const textarea = document.getElementById('popup-textarea');
-
-            // Set position based on click
-            popup.style.left = `${e.clientX + 10}px`;
-            popup.style.top = `${e.clientY + 10}px`;
-
-            // Populate text
-            textarea.value = note.text || '';
-
-            // Set active note id
-            popup.dataset.noteId = note.id;
-
-            // Update formatting button states
-            document.querySelectorAll('.popup-format-btn').forEach(btn => {
-              const format = btn.getAttribute('data-format');
-              if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
-                btn.classList.add('bg-indigo-600', 'text-white');
-              } else {
-                btn.classList.remove('bg-indigo-600', 'text-white');
-              }
-            });
-
-            // Update alignment button states
-            document.querySelectorAll('.popup-align-btn').forEach(btn => {
-              if (btn.getAttribute('data-align') === (note.textAlign || 'left')) {
-                btn.classList.add('bg-indigo-600', 'text-white');
-              } else {
-                btn.classList.remove('bg-indigo-600', 'text-white');
-              }
-            });
-
-            // Show popup
-            popup.classList.remove('hidden');
-            document.getElementById('popup-font-family').value = note.fontFamily || 'font-handwriting';
-            document.getElementById('popup-font-color').value = note.fontColor || '#1f2937';
-
-            // Focus textarea
-            textarea.focus();
+            openPopupForNote(note, e.clientX, e.clientY);
         }
       });
+    }
+
+    function openPopupForNote(note, clientX, clientY) {
+        if (note.mode !== 'text') return;
+
+        const popup = document.getElementById('popup-text-editor');
+        const textarea = document.getElementById('popup-textarea');
+
+        // Set position based on click
+        popup.style.left = `${clientX + 10}px`;
+        popup.style.top = `${clientY + 10}px`;
+
+        // Populate text
+        textarea.value = note.text || '';
+
+        // Set active note id
+        popup.dataset.noteId = note.id;
+
+        // Update formatting button states
+        document.querySelectorAll('.popup-format-btn').forEach(btn => {
+          const format = btn.getAttribute('data-format');
+          if ((format === 'bold' && note.isBold) || (format === 'italic' && note.isItalic)) {
+            btn.classList.add('bg-indigo-600', 'text-white');
+          } else {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+          }
+        });
+
+        // Update alignment button states
+        document.querySelectorAll('.popup-align-btn').forEach(btn => {
+          if (btn.getAttribute('data-align') === (note.textAlign || 'left')) {
+            btn.classList.add('bg-indigo-600', 'text-white');
+          } else {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+          }
+        });
+
+        // Show popup
+        popup.classList.remove('hidden');
+        document.getElementById('popup-font-family').value = note.fontFamily || 'font-handwriting';
+        document.getElementById('popup-font-color').value = note.fontColor || '#1f2937';
+
+        // Focus textarea
+        textarea.focus();
     }
 
     function toggleTaskDone(noteId, taskId, isDone) {
@@ -1678,7 +1684,7 @@
       const newNote = {
         id: id,
         mode: 'text',
-        text: 'New Stream Task\nClick Dock to edit details!',
+        text: options.text !== undefined ? options.text : 'New Stream Task\nClick Dock to edit details!',
         tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
         completed: false,
         visible: true,
@@ -1708,6 +1714,8 @@
       saveState(true);
       renderApp(true);
       showToast('Created new sticky note');
+
+      return newNote;
     }
 
     function deleteNote(noteId) {
@@ -2002,7 +2010,8 @@
             x = Math.max(0, x - 130);
             y = Math.max(0, y - 130);
 
-            addNewNote({ x, y, bgPresetId: presetId });
+            const newNote = addNewNote({ x, y, bgPresetId: presetId, text: '' });
+            openPopupForNote(newNote, e.clientX, e.clientY);
           }
         });
       }
@@ -2017,10 +2026,16 @@
         btnSwitchOverlay.addEventListener('click', () => switchViewMode('overlay'));
       }
       if (btnQuickAdd) {
-        btnQuickAdd.addEventListener('click', () => addNewNote());
+        btnQuickAdd.addEventListener('click', (e) => {
+          const newNote = addNewNote({ text: '' });
+          openPopupForNote(newNote, e.clientX, e.clientY);
+        });
       }
       if (btnCreateFirst) {
-        btnCreateFirst.addEventListener('click', () => addNewNote());
+        btnCreateFirst.addEventListener('click', (e) => {
+          const newNote = addNewNote({ text: '' });
+          openPopupForNote(newNote, e.clientX, e.clientY);
+        });
       }
 
       if (btnClearDone) {
@@ -2417,8 +2432,9 @@
           itemEl.classList.remove('opacity-50');
         });
 
-        itemEl.addEventListener('click', () => {
-          addNewNote({ bgPresetId: preset.id });
+        itemEl.addEventListener('click', (e) => {
+          const newNote = addNewNote({ bgPresetId: preset.id, text: '' });
+          openPopupForNote(newNote, e.clientX, e.clientY);
         });
 
         listEl.appendChild(itemEl);
