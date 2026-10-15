@@ -271,6 +271,12 @@
               </div>
             </div>
 
+            <!-- Group Input -->
+            <div class="flex items-center gap-2 pt-1">
+              <label class="text-xs text-zinc-400 block w-12 flex-shrink-0">Group:</label>
+              <input type="text" id="editor-note-group" placeholder="e.g. Goals, Links, Alerts (Optional)" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
             <!-- Single Multiline Textarea -->
             <div id="editor-textarea-wrapper">
               <textarea id="editor-note-text" rows="4" placeholder="Write stream goals, sub reminders, or notes here..." class="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
@@ -1277,124 +1283,188 @@
 
       showEditorEmptyState(false);
 
-      const sortedNotes = [...appState.notes].sort((a, b) => {
-        const indexA = appState.notes.indexOf(a);
-        const indexB = appState.notes.indexOf(b);
-        return (b.zIndex ?? indexB) - (a.zIndex ?? indexA);
+      if (!appState.collapsedGroups) {
+        appState.collapsedGroups = {};
+      }
+
+      // Group notes
+      const groups = {};
+      appState.notes.forEach(note => {
+        const groupName = note.group || 'Ungrouped';
+        if (!groups[groupName]) {
+          groups[groupName] = [];
+        }
+        groups[groupName].push(note);
       });
 
-      sortedNotes.forEach((note, sortedIndex) => {
-        const index = appState.notes.indexOf(note);
-        const isSelected = note.id === currentSelectedNoteId;
-        const itemEl = document.createElement('div');
-        itemEl.className = `p-3 rounded-xl border transition-all cursor-pointer ${
-          isSelected 
-            ? 'bg-zinc-800/90 border-indigo-500 shadow-md ring-1 ring-indigo-500/40' 
-            : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
-        }`;
+      const groupNames = Object.keys(groups).sort((a, b) => {
+        if (a === 'Ungrouped') return 1;
+        if (b === 'Ungrouped') return -1;
+        return a.localeCompare(b);
+      });
 
-        // Color indicator pill / Thumbnail
-        const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
-        const previewColor = note.customBgUrl ? '' : preset.color;
-        let thumbnailContent = note.customBgUrl
-          ? `<img src="${note.customBgUrl}" class="w-full h-full object-cover">`
-          : preset.renderSvg();
-
-        // Preview snippet
-        let previewText = note.mode === 'tasks' && note.tasks?.length 
-          ? note.tasks.map(t => `${t.done ? '✓' : '○'} ${t.text}`).join(' · ')
-          : (note.text || 'Untitled note');
-
-        itemEl.innerHTML = `
-          <div class="flex items-center justify-between gap-2 mb-1.5">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <div class="w-6 h-6 rounded flex-shrink-0 overflow-hidden border border-zinc-700/50 relative" style="${previewColor ? `background-color: ${previewColor};` : ''}">${thumbnailContent}</div>
-              <span class="text-xs font-semibold truncate ${note.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}">
-                Note #${index + 1}
-              </span>
-            </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <button data-action="move-up" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Bring Forward">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-              </button>
-              <button data-action="move-down" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Send Backward">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-              </button>
-              <button data-action="toggle-visibility" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="${note.visible === false ? 'Show Note' : 'Hide Note'}">
-                <svg class="w-3.5 h-3.5 ${note.visible === false ? 'opacity-50' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  ${note.visible === false
-                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />'
-                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>'}
-                </svg>
-              </button>
-              <button data-action="toggle-lock" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-amber-400" title="${note.isLocked ? 'Unlock Note' : 'Lock Note'}">
-                <svg class="w-3.5 h-3.5 ${note.isLocked ? 'text-amber-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  ${note.isLocked
-                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>'
-                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>'}
-                </svg>
-              </button>
-              ${note.isLocked ? '' : `
-              <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
-                <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              </button>
-              <button data-action="delete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-rose-400" title="Delete note">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-              `}
-            </div>
-          </div>
-          <p class="text-[11px] text-zinc-400 truncate line-clamp-1">${escapeHtml(previewText)}</p>
-        `;
-
-        itemEl.addEventListener('click', (e) => {
-          if (e.target.closest('[data-action="move-up"]')) {
-            e.stopPropagation();
-            reorderNoteStack(note.id, 1);
-            return;
-          }
-          if (e.target.closest('[data-action="move-down"]')) {
-            e.stopPropagation();
-            reorderNoteStack(note.id, -1);
-            return;
-          }
-          if (e.target.closest('[data-action="toggle-visibility"]')) {
-            e.stopPropagation();
-            note.visible = note.visible === false ? true : false;
-            saveState(true);
-            renderApp(true);
-            return;
-          }
-          if (e.target.closest('[data-action="toggle-lock"]')) {
-            e.stopPropagation();
-            note.isLocked = !note.isLocked;
-            saveState(true);
-            renderApp(true);
-            return;
-          }
-          if (e.target.closest('[data-action="toggle-complete"]')) {
-            e.stopPropagation();
-            if (note.isLocked) return;
-            note.completed = !note.completed;
-            saveState(true);
-            renderApp(false);
-            return;
-          }
-          if (e.target.closest('[data-action="delete"]')) {
-            e.stopPropagation();
-            if (note.isLocked) {
-              showToast('Cannot delete locked note', 'error');
-              return;
-            }
-            deleteNote(note.id);
-            return;
-          }
-          currentSelectedNoteId = note.id;
-          renderDockView();
-          populateEditorForm();
+      groupNames.forEach(groupName => {
+        const groupNotes = groups[groupName].sort((a, b) => {
+          const indexA = appState.notes.indexOf(a);
+          const indexB = appState.notes.indexOf(b);
+          return (b.zIndex ?? indexB) - (a.zIndex ?? indexA);
         });
 
-        listEl.appendChild(itemEl);
+        const isCollapsed = !!appState.collapsedGroups[groupName];
+        const allVisible = groupNotes.every(n => n.visible !== false);
+
+        // Group Header
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'flex items-center justify-between py-1.5 px-2 mt-2 mb-1 bg-zinc-800/40 rounded-lg cursor-pointer group hover:bg-zinc-800/80 transition-colors';
+        groupHeader.innerHTML = `
+          <div class="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 select-none flex-1">
+            <svg class="w-3.5 h-3.5 transition-transform ${isCollapsed ? '-rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            ${escapeHtml(groupName)} <span class="text-zinc-500 font-normal ml-1">(${groupNotes.length})</span>
+          </div>
+          <button data-action="toggle-group-visibility" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400 flex-shrink-0" title="${allVisible ? 'Hide Group' : 'Show Group'}">
+            <svg class="w-3.5 h-3.5 ${!allVisible ? 'opacity-50' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              ${!allVisible
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>'}
+            </svg>
+          </button>
+        `;
+
+        groupHeader.addEventListener('click', (e) => {
+          if (e.target.closest('[data-action="toggle-group-visibility"]')) {
+            e.stopPropagation();
+            const newState = !allVisible;
+            groupNotes.forEach(n => n.visible = newState);
+            saveState(true);
+            renderApp(true);
+            return;
+          }
+          appState.collapsedGroups[groupName] = !isCollapsed;
+          saveState(false);
+          renderDockView();
+        });
+
+        listEl.appendChild(groupHeader);
+
+        // Group Content Container
+        const groupContent = document.createElement('div');
+        groupContent.className = `space-y-2.5 ${isCollapsed ? 'hidden' : ''}`;
+
+        groupNotes.forEach((note) => {
+          const index = appState.notes.indexOf(note);
+          const isSelected = note.id === currentSelectedNoteId;
+          const itemEl = document.createElement('div');
+          itemEl.className = `p-3 rounded-xl border transition-all cursor-pointer ml-2 ${
+            isSelected
+              ? 'bg-zinc-800/90 border-indigo-500 shadow-md ring-1 ring-indigo-500/40'
+              : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
+          }`;
+
+          // Color indicator pill / Thumbnail
+          const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+          const previewColor = note.customBgUrl ? '' : preset.color;
+          let thumbnailContent = note.customBgUrl
+            ? `<img src="${note.customBgUrl}" class="w-full h-full object-cover">`
+            : preset.renderSvg();
+
+          // Preview snippet
+          let previewText = note.mode === 'tasks' && note.tasks?.length
+            ? note.tasks.map(t => `${t.done ? '✓' : '○'} ${t.text}`).join(' · ')
+            : (note.text || 'Untitled note');
+
+          itemEl.innerHTML = `
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <div class="w-6 h-6 rounded flex-shrink-0 overflow-hidden border border-zinc-700/50 relative" style="${previewColor ? `background-color: ${previewColor};` : ''}">${thumbnailContent}</div>
+                <span class="text-xs font-semibold truncate ${note.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}">
+                  Note #${index + 1}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button data-action="move-up" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Bring Forward">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <button data-action="move-down" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="Send Backward">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <button data-action="toggle-visibility" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-indigo-400" title="${note.visible === false ? 'Show Note' : 'Hide Note'}">
+                  <svg class="w-3.5 h-3.5 ${note.visible === false ? 'opacity-50' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${note.visible === false
+                      ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />'
+                      : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>'}
+                  </svg>
+                </button>
+                <button data-action="toggle-lock" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-amber-400" title="${note.isLocked ? 'Unlock Note' : 'Lock Note'}">
+                  <svg class="w-3.5 h-3.5 ${note.isLocked ? 'text-amber-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${note.isLocked
+                      ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>'
+                      : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>'}
+                  </svg>
+                </button>
+                ${note.isLocked ? '' : `
+                <button data-action="toggle-complete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-emerald-400" title="${note.completed ? 'Mark uncompleted' : 'Mark completed'}">
+                  <svg class="w-3.5 h-3.5 ${note.completed ? 'text-emerald-400' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+                <button data-action="delete" data-id="${note.id}" class="p-1 rounded hover:bg-zinc-700 text-zinc-400 hover:text-rose-400" title="Delete note">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                `}
+              </div>
+            </div>
+            <p class="text-[11px] text-zinc-400 truncate line-clamp-1">${escapeHtml(previewText)}</p>
+          `;
+
+          itemEl.addEventListener('click', (e) => {
+            if (e.target.closest('[data-action="move-up"]')) {
+              e.stopPropagation();
+              reorderNoteStack(note.id, 1);
+              return;
+            }
+            if (e.target.closest('[data-action="move-down"]')) {
+              e.stopPropagation();
+              reorderNoteStack(note.id, -1);
+              return;
+            }
+            if (e.target.closest('[data-action="toggle-visibility"]')) {
+              e.stopPropagation();
+              note.visible = note.visible === false ? true : false;
+              saveState(true);
+              renderApp(true);
+              return;
+            }
+            if (e.target.closest('[data-action="toggle-lock"]')) {
+              e.stopPropagation();
+              note.isLocked = !note.isLocked;
+              saveState(true);
+              renderApp(true);
+              return;
+            }
+            if (e.target.closest('[data-action="toggle-complete"]')) {
+              e.stopPropagation();
+              if (note.isLocked) return;
+              note.completed = !note.completed;
+              saveState(true);
+              renderApp(false);
+              return;
+            }
+            if (e.target.closest('[data-action="delete"]')) {
+              e.stopPropagation();
+              if (note.isLocked) {
+                showToast('Cannot delete locked note', 'error');
+                return;
+              }
+              deleteNote(note.id);
+              return;
+            }
+            currentSelectedNoteId = note.id;
+            renderDockView();
+            populateEditorForm();
+          });
+
+          groupContent.appendChild(itemEl);
+        });
+
+        listEl.appendChild(groupContent);
       });
 
       populateEditorForm();
@@ -1469,6 +1539,11 @@
       }
 
       document.getElementById('editor-note-completed').checked = !!note.completed;
+
+      const groupInput = document.getElementById('editor-note-group');
+      if (groupInput) {
+        groupInput.value = note.group || '';
+      }
 
       // Render preset swatches
       renderPresetSwatches(note);
@@ -1806,6 +1881,7 @@
 
       const newNote = {
         id: id,
+        group: '',
         mode: 'text',
         text: options.text !== undefined ? options.text : 'New Stream Task\nClick Dock to edit details!',
         tasks: [{ id: 't_' + Date.now(), text: 'New Stream Task', done: false }],
@@ -2343,6 +2419,19 @@
             note.text = e.target.value;
             saveState(true);
             renderOverlayCanvas();
+          }
+        });
+      }
+
+      // Group name changes
+      const inputGroup = document.getElementById('editor-note-group');
+      if (inputGroup) {
+        inputGroup.addEventListener('input', (e) => {
+          const note = appState.notes.find(n => n.id === currentSelectedNoteId);
+          if (note) {
+            note.group = e.target.value.trim() === '' ? '' : e.target.value;
+            saveState(true);
+            renderDockView(); // Re-render sidebar to reflect group change
           }
         });
       }
