@@ -827,11 +827,12 @@
 
       // Content Layer (Tasks or Freeform Text)
       let innerHtml = '';
-      if (note.mode === 'tasks' && Array.isArray(note.tasks) && note.tasks.length > 0) {
+      if (note.mode === 'tasks') {
         const titleHtml = (note.taskTitle && note.taskTitle.trim() !== '') ?
           `<div class="font-bold mb-2 pointer-events-auto">${escapeHtml(note.taskTitle)}</div>` : '';
 
-        const tasksItemsHtml = note.tasks.map(t => `
+        const tasksList = Array.isArray(note.tasks) ? note.tasks : [];
+        const tasksItemsHtml = tasksList.map(t => `
           <div class="flex items-start gap-2 mb-1.5 pointer-events-auto">
             <input type="checkbox" data-note-id="${note.id}" data-task-id="${t.id}" ${t.done ? 'checked' : ''} ${note.isLocked ? 'disabled' : ''} class="task-checkbox mt-1 w-4 h-4 rounded cursor-pointer accent-indigo-600">
             <label class="cursor-pointer select-none">

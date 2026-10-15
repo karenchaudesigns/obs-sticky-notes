@@ -1,0 +1,5 @@
+127.0.0.1 - - [15/Oct/2026 19:27:26] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Oct/2026 19:27:26] "GET /default_data.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Oct/2026 19:28:28] "GET /?mode=dock HTTP/1.1" 200 -
+127.0.0.1 - - [15/Oct/2026 19:28:28] "GET /default_data.json HTTP/1.1" 200 -
+127.0.0.1 - - [15/Oct/2026 19:28:31] "GET /?mode=overlay HTTP/1.1" 200 -
