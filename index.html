@@ -957,6 +957,10 @@
         currentSelectedNoteId = note.id;
         updateSelectionIndicators();
 
+        if (previousSelectedId !== currentSelectedNoteId) {
+            document.getElementById('popup-text-editor').classList.add('hidden');
+        }
+
         if (currentViewMode === 'dock' && previousSelectedId !== currentSelectedNoteId) {
           populateEditorForm();
           renderDockView();
@@ -1913,6 +1917,49 @@
       const popupEditor = document.getElementById('popup-text-editor');
       const popupTextarea = document.getElementById('popup-textarea');
       const popupClose = document.getElementById('popup-close');
+      const popupHeader = document.getElementById('popup-header');
+
+      // Popup drag logic
+      if (popupHeader && popupEditor) {
+          let isDraggingPopup = false;
+          let popupStartX = 0;
+          let popupStartY = 0;
+          let popupInitialLeft = 0;
+          let popupInitialTop = 0;
+
+          popupHeader.addEventListener('pointerdown', (e) => {
+              if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
+              isDraggingPopup = true;
+              popupStartX = e.clientX;
+              popupStartY = e.clientY;
+              popupInitialLeft = parseInt(popupEditor.style.left || 0, 10);
+              popupInitialTop = parseInt(popupEditor.style.top || 0, 10);
+              popupHeader.setPointerCapture(e.pointerId);
+              e.preventDefault();
+          });
+
+          popupHeader.addEventListener('pointermove', (e) => {
+              if (!isDraggingPopup) return;
+              const dx = e.clientX - popupStartX;
+              const dy = e.clientY - popupStartY;
+              popupEditor.style.left = `${popupInitialLeft + dx}px`;
+              popupEditor.style.top = `${popupInitialTop + dy}px`;
+          });
+
+          popupHeader.addEventListener('pointerup', (e) => {
+              if (isDraggingPopup) {
+                  isDraggingPopup = false;
+                  popupHeader.releasePointerCapture(e.pointerId);
+              }
+          });
+
+          popupHeader.addEventListener('pointercancel', (e) => {
+              if (isDraggingPopup) {
+                  isDraggingPopup = false;
+                  popupHeader.releasePointerCapture(e.pointerId);
+              }
+          });
+      }
 
       const btnPopupText = document.getElementById('popup-mode-text');
       const btnPopupTasks = document.getElementById('popup-mode-tasks');
@@ -2194,6 +2241,7 @@
         if (e.target.id === 'notes-canvas' || e.target.id === 'dock-preview-canvas' || e.target.id === 'overlay-container' || e.target.id === 'dock-preview-container') {
           currentSelectedNoteId = null;
           updateSelectionIndicators();
+          document.getElementById('popup-text-editor').classList.add('hidden');
           if (currentViewMode === 'dock') {
             populateEditorForm();
             renderDockView();
@@ -2710,8 +2758,8 @@
 
   <!-- POPUP TEXT EDITOR -->
   <div id="popup-text-editor" class="hidden absolute z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-3" style="width: 300px;">
-    <div class="flex justify-between items-center mb-2">
-      <span class="text-xs font-semibold text-zinc-300">Edit Note</span>
+    <div id="popup-header" class="flex justify-between items-center mb-2 cursor-grab active:cursor-grabbing">
+      <span class="text-xs font-semibold text-zinc-300 pointer-events-none">Edit Note</span>
       <div class="flex items-center gap-2">
         <button id="popup-mode-text" class="px-2 py-0.5 text-[10px] rounded font-medium transition-colors bg-indigo-600 text-white">Text</button>
         <button id="popup-mode-tasks" class="px-2 py-0.5 text-[10px] rounded font-medium transition-colors bg-zinc-800 text-zinc-400 hover:text-zinc-200">Tasks</button>
