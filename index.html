@@ -1970,6 +1970,13 @@
               if (!noteId) return;
               const note = appState.notes.find(n => n.id === noteId);
               if (note) {
+                  if (note.mode !== 'text') {
+                      if (note.tasks && note.tasks.length > 0) {
+                          note.text = note.tasks.map(t => '- ' + t.text).join('\n');
+                      } else {
+                          note.text = '';
+                      }
+                  }
                   note.mode = 'text';
                   saveState(true);
                   renderOverlayCanvas();
@@ -1990,13 +1997,13 @@
               if (!noteId) return;
               const note = appState.notes.find(n => n.id === noteId);
               if (note) {
-                  note.mode = 'tasks';
-                  if (!note.tasks || note.tasks.length === 0) {
+                  if (note.mode !== 'tasks') {
                       note.tasks = (note.text || '')
-                          .split('\\n')
+                          .split('\n')
                           .filter(line => line.trim().length > 0)
-                          .map(line => ({ id: 't_' + Math.random(), text: line.replace(/^-s*/, ''), done: false }));
+                          .map(line => ({ id: 't_' + Math.random(), text: line.replace(/^-\s*/, ''), done: false }));
                   }
+                  note.mode = 'tasks';
                   saveState(true);
                   renderOverlayCanvas();
                   if (currentSelectedNoteId === noteId && currentViewMode === 'dock') {
@@ -2380,6 +2387,13 @@
       document.getElementById('editor-mode-text').addEventListener('click', () => {
         const note = appState.notes.find(n => n.id === currentSelectedNoteId);
         if (note) {
+          if (note.mode !== 'text') {
+            if (note.tasks && note.tasks.length > 0) {
+              note.text = note.tasks.map(t => '- ' + t.text).join('\n');
+            } else {
+              note.text = '';
+            }
+          }
           note.mode = 'text';
           saveState(true);
           renderApp(false);
@@ -2389,14 +2403,14 @@
       document.getElementById('editor-mode-tasks').addEventListener('click', () => {
         const note = appState.notes.find(n => n.id === currentSelectedNoteId);
         if (note) {
-          note.mode = 'tasks';
-          if (!note.tasks || note.tasks.length === 0) {
+          if (note.mode !== 'tasks') {
             // Convert lines of text to checklist items
             note.tasks = (note.text || '')
               .split('\n')
               .filter(line => line.trim().length > 0)
               .map(line => ({ id: 't_' + Math.random(), text: line.replace(/^-\s*/, ''), done: false }));
           }
+          note.mode = 'tasks';
           saveState(true);
           renderApp(false);
           populateEditorForm();
