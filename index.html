@@ -243,7 +243,7 @@
           <div id="memo-pads-panel" class="w-full xl:w-64 flex-shrink-0 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col max-h-[300px] xl:max-h-[none]">
             <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">Memo Pads</h3>
             <p class="text-[11px] text-zinc-500 mb-4">Drag and drop onto canvas to add note</p>
-            <div id="memo-pads-list" class="flex flex-row xl:flex-col gap-3 overflow-x-auto xl:overflow-y-auto overflow-y-hidden xl:overflow-x-hidden pb-2 xl:pb-0 pr-2 flex-1">
+            <div id="memo-pads-list" class="flex flex-row xl:grid xl:grid-cols-2 gap-3 overflow-x-auto xl:overflow-y-auto overflow-y-hidden xl:overflow-x-hidden pb-2 xl:pb-0 pr-2 flex-1">
               <!-- Rendered via JS -->
             </div>
           </div>
@@ -2788,7 +2788,7 @@
 
       BACKGROUND_PRESETS.forEach(preset => {
         const itemEl = document.createElement('div');
-        itemEl.className = 'w-16 h-16 xl:w-full xl:h-16 flex-shrink-0 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform relative group';
+        itemEl.className = 'w-16 h-16 xl:w-full xl:h-auto xl:aspect-square flex-shrink-0 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform relative group';
         itemEl.draggable = true;
         itemEl.dataset.presetId = preset.id;
 
