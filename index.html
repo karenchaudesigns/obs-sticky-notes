@@ -2793,7 +2793,7 @@
         itemEl.dataset.presetId = preset.id;
 
         itemEl.innerHTML = `
-          <div class="w-full h-full rounded-md shadow-sm border border-zinc-700/50 overflow-hidden" style="background-color: ${preset.color};">
+          <div class="absolute inset-0 rounded-md shadow-sm border border-zinc-700/50 overflow-hidden" style="background-color: ${preset.color};">
             ${preset.renderSvg('memo-pad-' + preset.id)}
           </div>
           <div class="hidden xl:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 items-center justify-center transition-opacity rounded-md pointer-events-none">
