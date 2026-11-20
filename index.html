@@ -197,11 +197,28 @@
     <!-- Main Content Area: Left list & Right Editor -->
     <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
       
-      <!-- Notes Sidebar / Accordion List -->
-      <section class="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/60 flex flex-col">
+      <!-- Collapsed Left Strip (shown by default) -->
+      <div id="dock-sidebar-collapsed" class="flex-shrink-0 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/80 flex md:flex-col items-center justify-between md:justify-start p-2 gap-3">
+        <button id="dock-sidebar-expand-btn" type="button" title="Expand Notes List" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+        <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 md:[writing-mode:vertical-rl] md:rotate-180 select-none">Notes</span>
+      </div>
+
+      <!-- Notes Sidebar / Accordion List (collapsed by default) -->
+      <section id="dock-notes-sidebar" class="hidden w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/60 flex flex-col">
         <!-- Action Toolbar -->
         <div class="p-3 border-b border-zinc-800/80 flex items-center justify-between gap-2 text-xs">
-          <span id="dock-notes-count" class="text-zinc-400 font-medium">0 active notes</span>
+          <div class="flex items-center gap-2">
+            <button id="dock-sidebar-collapse-btn" type="button" title="Collapse Notes List" class="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <span id="dock-notes-count" class="text-zinc-400 font-medium">0 active notes</span>
+          </div>
           <div class="flex items-center gap-1">
             <button id="dock-btn-clear-done" class="px-2 py-1 text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors" title="Delete completed tasks">
               Clear Done
@@ -235,16 +252,84 @@
 
         <!-- Interactive Preview and Memo Pads Panel -->
         <div class="flex flex-col xl:flex-row xl:items-start gap-6">
-          <div id="dock-preview-container" class="relative flex-1 aspect-video bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-            <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+          <div class="flex-1 flex flex-col min-w-0">
+            <!-- Laptop Frame -->
+            <div class="bg-zinc-800 rounded-t-2xl p-2.5 sm:p-3 pb-2 border border-zinc-700 shadow-xl relative">
+              <div class="w-2 h-2 rounded-full bg-zinc-950 border border-zinc-700 mx-auto mb-2"></div>
+              <div id="dock-preview-container" class="relative w-full aspect-video bg-zinc-900 border border-zinc-950 rounded-lg overflow-hidden shadow-inner">
+                <div id="dock-preview-canvas" class="absolute top-0 left-0 origin-top-left w-[1920px] h-[1080px] pointer-events-auto"></div>
+              </div>
+            </div>
+            <!-- Laptop Base / Hinge -->
+            <div class="h-3 bg-gradient-to-b from-zinc-700 to-zinc-800 rounded-b-xl mx-[-0.5%] shadow-md border-x border-b border-zinc-700 flex items-center justify-center">
+              <div class="w-16 h-1 bg-zinc-600 rounded-full"></div>
+            </div>
+
+            <!-- White Desk Underneath -->
+            <div id="white-desk-area" class="relative mt-3 min-h-[150px] bg-gradient-to-b from-zinc-100 to-zinc-200 border border-zinc-300 rounded-xl p-4 pb-14 shadow-inner transition-colors">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-3 select-none pointer-events-none">Desk (Off-Screen / Hidden from Overlay)</div>
+              <div id="desk-notes-list" class="flex flex-wrap gap-3 items-start">
+                <!-- Hidden notes rendered via JS -->
+              </div>
+
+              <!-- Recycle Bin (Bottom Right) -->
+              <button id="recycle-bin-btn" type="button" title="Drag notes here to archive, or click to open Recycle Bin" class="absolute bottom-3 right-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/80 hover:bg-white border border-zinc-300 text-zinc-700 shadow-sm cursor-pointer transition-all select-none">
+                <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span class="text-xs font-semibold">Recycle Bin</span>
+                <span id="recycle-bin-count" class="hidden px-1.5 py-0.5 text-[10px] font-bold bg-zinc-700 text-white rounded-full">0</span>
+              </button>
+            </div>
           </div>
 
           <!-- Memo Pads Interactive Panel -->
-          <div id="memo-pads-panel" class="w-full xl:w-64 flex-shrink-0 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col max-h-[300px] xl:max-h-[none]">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">Memo Pads</h3>
-            <p class="text-[11px] text-zinc-500 mb-4">Drag and drop onto canvas to add note</p>
+          <div id="memo-pads-panel" class="w-full xl:w-64 flex-shrink-0 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col max-h-[360px] xl:max-h-[none]">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Memo Pads</h3>
+              <button id="memo-pads-reset-btn" class="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors" title="Restore default memo pads">Reset</button>
+            </div>
+            <p class="text-[11px] text-zinc-500 mb-3">Drag onto canvas to add note</p>
             <div id="memo-pads-list" class="flex flex-row xl:grid xl:grid-cols-2 gap-3 overflow-x-auto xl:overflow-y-auto overflow-y-hidden xl:overflow-x-hidden pb-2 xl:pb-0 pr-2 flex-1">
               <!-- Rendered via JS -->
+            </div>
+            <!-- Create Custom Image Memo Pad -->
+            <div class="pt-3 mt-3 border-t border-zinc-800/80 space-y-2 flex-shrink-0">
+              <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Custom Image</label>
+              <label class="flex items-center justify-center gap-1.5 border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2 cursor-pointer bg-zinc-950/40 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Upload PNG / SVG / JPG</span>
+                <input type="file" id="memo-custom-bg-file" accept="image/*" class="hidden">
+              </label>
+              <div class="flex gap-1.5">
+                <input type="text" id="memo-custom-bg-url" placeholder="Image URL or path..." class="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1 text-[11px] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <button id="memo-custom-bg-add" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold transition-colors">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recycle Bin Modal -->
+        <div id="recycle-bin-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <h3 class="text-sm font-bold text-zinc-100">Recycle Bin (Archived Notes)</h3>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="recycle-bin-empty-btn" type="button" class="px-2.5 py-1 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 rounded-md transition-colors">Empty Bin</button>
+                <button id="recycle-bin-close-btn" type="button" class="p-1 text-zinc-400 hover:text-zinc-200 rounded-md transition-colors">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div id="recycle-bin-list" class="p-4 overflow-y-auto flex-1 space-y-2.5">
+              <!-- Archived notes rendered via JS -->
             </div>
           </div>
         </div>
@@ -343,122 +428,6 @@
                 </label>
               </div>
 
-          </div>
-
-          <!-- Background & Artwork Customization -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Background &amp; Custom Artwork</h3><button id="editor-btn-reset-bg" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Background Settings">Reset</button>
-              <span class="text-[11px] text-zinc-500">Select preset or upload graphic</span>
-            </div>
-
-            <!-- Generic Presets Swatches -->
-            <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5" id="editor-bg-presets">
-              <!-- Rendered via JS -->
-            </div>
-
-            <!-- Custom Art Uploader / Direct URL -->
-            <div class="pt-3 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-zinc-300 mb-1.5">Custom Image Upload (Local Artwork)</label>
-                <label class="flex items-center justify-center gap-2 border-2 border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-3 cursor-pointer bg-zinc-950/40 text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  <span>Choose PNG / SVG / JPG</span>
-                  <input type="file" id="editor-custom-bg-file" accept="image/*" class="hidden">
-                </label>
-              </div>
-
-              <div>
-                <label class="block text-xs font-medium text-zinc-300 mb-1.5">Custom Image URL or Path</label>
-                <div class="flex gap-1.5">
-                  <input type="text" id="editor-custom-bg-url" placeholder="assets/backgrounds/my-art.png" class="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <button id="editor-custom-bg-clear" class="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs" title="Clear image">Clear</button>
-                </div>
-              </div>
-            </div>
-
-                        <div class="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Image Filter</label>
-                <select id="editor-bg-filter" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1 text-xs text-zinc-200">
-                  <option value="none">None</option>
-                  <option value="light-pastel">Light Pastel</option>
-                  <option value="grayscale">Grayscale</option>
-                  <option value="monotone-yellow">Monotone Yellow</option>
-                </select>
-              </div>
-              <div id="editor-bg-filter-strength-container" class="hidden">
-                <label class="text-[11px] text-zinc-400 block mb-1">Filter Strength</label>
-                <input type="range" id="editor-bg-filter-strength" min="0" max="100" step="1" class="w-full accent-indigo-500">
-                <span id="editor-bg-filter-strength-val" class="text-[11px] text-zinc-400 float-right">100%</span>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 pt-2">
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Image Saturation</label>
-                <input type="range" id="editor-bg-saturation" min="0" max="200" step="1" class="w-full accent-indigo-500">
-                <span id="editor-bg-saturation-val" class="text-[11px] text-zinc-400 float-right">100%</span>
-              </div>
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Image Brightness</label>
-                <input type="range" id="editor-bg-brightness" min="0" max="200" step="1" class="w-full accent-indigo-500">
-                <span id="editor-bg-brightness-val" class="text-[11px] text-zinc-400 float-right">100%</span>
-              </div>
-            </div>
-
-            <!-- Safe Area Inner Padding (Crucial for artwork frames & pins) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Padding Top (px)</label>
-                <input type="number" id="editor-pad-top" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Padding Bottom (px)</label>
-                <input type="number" id="editor-pad-bottom" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Padding Left (px)</label>
-                <input type="number" id="editor-pad-left" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-[11px] text-zinc-400 block mb-1">Padding Right (px)</label>
-                <input type="number" id="editor-pad-right" min="0" max="100" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-            </div>
-          </div>
-
-          <!-- Position, Dimensions & Tilt -->
-          <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-sm space-y-4">
-            <div class="flex items-center justify-between"><h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Canvas Dimensions &amp; Tilt</h3><button id="editor-btn-reset-dim" class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] transition-colors" title="Reset Dimension Settings">Reset</button></div>
-            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Pos X (px)</label>
-                <input type="number" id="editor-pos-x" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Pos Y (px)</label>
-                <input type="number" id="editor-pos-y" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Width (px)</label>
-                <input type="range" id="editor-size-w" min="140" max="1000" step="1" class="w-full accent-indigo-500">
-                <span id="editor-size-w-val" class="text-[11px] text-zinc-400 float-right">280px</span>
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Height (px)</label>
-                <input type="range" id="editor-size-h" min="140" max="1000" step="1" class="w-full accent-indigo-500">
-                <span id="editor-size-h-val" class="text-[11px] text-zinc-400 float-right">280px</span>
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Rotation (°)</label>
-                <input type="number" id="editor-rotation" min="-45" max="45" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400 block mb-1">Text Rot (°)</label>
-                <input type="number" id="editor-text-rotation" min="-180" max="180" class="w-full bg-zinc-950 border border-zinc-700 rounded-md p-1.5 text-xs text-zinc-200">
-              </div>
-            </div>
           </div>
 
           <!-- Danger zone actions -->
@@ -1126,12 +1095,35 @@
       // Pointer Up Handler
       const handlePointerUp = (e) => {
         if (isDragging || isResizing) {
+          const wasDragging = isDragging;
           isDragging = false;
           isResizing = false;
           element.classList.remove('cursor-grabbing');
           try {
             element.releasePointerCapture(e.pointerId);
           } catch(err) {}
+
+          if (wasDragging && currentViewMode === 'dock') {
+            const binBtn = document.getElementById('recycle-bin-btn');
+            const deskArea = document.getElementById('white-desk-area');
+            const binRect = binBtn ? binBtn.getBoundingClientRect() : null;
+            const deskRect = deskArea ? deskArea.getBoundingClientRect() : null;
+
+            if (binRect && e.clientX >= binRect.left && e.clientX <= binRect.right && e.clientY >= binRect.top && e.clientY <= binRect.bottom) {
+              note.archived = true;
+              note.visible = false;
+              saveState(true);
+              renderApp(true);
+              return;
+            } else if (deskRect && e.clientX >= deskRect.left && e.clientX <= deskRect.right && e.clientY >= deskRect.top && e.clientY <= deskRect.bottom) {
+              note.visible = false;
+              note.archived = false;
+              saveState(true);
+              renderApp(true);
+              return;
+            }
+          }
+
           saveState(true);
           syncDockFormIfSelected(note.id);
         }
@@ -2402,8 +2394,25 @@
 
         dockPreviewContainer.addEventListener('drop', (e) => {
           e.preventDefault();
+          const noteId = e.dataTransfer.getData('application/x-note-id');
+          if (noteId) {
+            const note = appState.notes.find(n => n.id === noteId);
+            if (note) {
+              const rect = dockPreviewContainer.getBoundingClientRect();
+              let x = (e.clientX - rect.left) / dockPreviewScale;
+              let y = (e.clientY - rect.top) / dockPreviewScale;
+              note.x = Math.max(0, x - (note.width || 260) / 2);
+              note.y = Math.max(0, y - (note.height || 260) / 2);
+              note.visible = true;
+              note.archived = false;
+              saveState(true);
+              renderApp(true);
+            }
+            return;
+          }
+          const customBgUrl = e.dataTransfer.getData('application/x-custom-bg-url');
           const presetId = e.dataTransfer.getData('text/plain');
-          if (presetId) {
+          if (customBgUrl || presetId) {
             const rect = dockPreviewContainer.getBoundingClientRect();
             let x = (e.clientX - rect.left) / dockPreviewScale;
             let y = (e.clientY - rect.top) / dockPreviewScale;
@@ -2412,9 +2421,115 @@
             x = Math.max(0, x - 130);
             y = Math.max(0, y - 130);
 
-            const newNote = addNewNote({ x, y, bgPresetId: presetId, text: '' });
+            const newNote = customBgUrl
+              ? addNewNote({ x, y, customBgUrl, text: '' })
+              : addNewNote({ x, y, bgPresetId: presetId, text: '' });
             openPopupForNote(newNote, e.clientX, e.clientY);
           }
+        });
+      }
+
+      const whiteDeskArea = document.getElementById('white-desk-area');
+      if (whiteDeskArea) {
+        whiteDeskArea.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          whiteDeskArea.classList.add('ring-2', 'ring-indigo-400');
+        });
+        whiteDeskArea.addEventListener('dragleave', () => {
+          whiteDeskArea.classList.remove('ring-2', 'ring-indigo-400');
+        });
+        whiteDeskArea.addEventListener('drop', (e) => {
+          e.preventDefault();
+          whiteDeskArea.classList.remove('ring-2', 'ring-indigo-400');
+          if (e.target.closest('#recycle-bin-btn')) return;
+          const noteId = e.dataTransfer.getData('application/x-note-id');
+          if (noteId) {
+            const note = appState.notes.find(n => n.id === noteId);
+            if (note) {
+              note.visible = false;
+              note.archived = false;
+              saveState(true);
+              renderApp(true);
+            }
+            return;
+          }
+          const presetId = e.dataTransfer.getData('text/plain');
+          if (presetId) {
+            const newNote = addNewNote({ bgPresetId: presetId, text: '' });
+            newNote.visible = false;
+            saveState(true);
+            renderApp(true);
+            openPopupForNote(newNote, e.clientX, e.clientY);
+          }
+        });
+      }
+
+      const sidebarEl = document.getElementById('dock-notes-sidebar');
+      const sidebarCollapsedEl = document.getElementById('dock-sidebar-collapsed');
+      const sidebarExpandBtn = document.getElementById('dock-sidebar-expand-btn');
+      const sidebarCollapseBtn = document.getElementById('dock-sidebar-collapse-btn');
+
+      if (sidebarExpandBtn && sidebarEl && sidebarCollapsedEl) {
+        sidebarExpandBtn.addEventListener('click', () => {
+          sidebarEl.classList.remove('hidden');
+          sidebarCollapsedEl.classList.add('hidden');
+          if (typeof updateDockPreviewScale === 'function') updateDockPreviewScale();
+        });
+      }
+      if (sidebarCollapseBtn && sidebarEl && sidebarCollapsedEl) {
+        sidebarCollapseBtn.addEventListener('click', () => {
+          sidebarEl.classList.add('hidden');
+          sidebarCollapsedEl.classList.remove('hidden');
+          if (typeof updateDockPreviewScale === 'function') updateDockPreviewScale();
+        });
+      }
+
+      const recycleBinBtn = document.getElementById('recycle-bin-btn');
+      const recycleBinModal = document.getElementById('recycle-bin-modal');
+      const recycleBinCloseBtn = document.getElementById('recycle-bin-close-btn');
+      const recycleBinEmptyBtn = document.getElementById('recycle-bin-empty-btn');
+
+      if (recycleBinBtn) {
+        recycleBinBtn.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          recycleBinBtn.classList.add('ring-2', 'ring-rose-500', 'bg-rose-50', 'scale-105');
+        });
+        recycleBinBtn.addEventListener('dragleave', () => {
+          recycleBinBtn.classList.remove('ring-2', 'ring-rose-500', 'bg-rose-50', 'scale-105');
+        });
+        recycleBinBtn.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          recycleBinBtn.classList.remove('ring-2', 'ring-rose-500', 'bg-rose-50', 'scale-105');
+          const noteId = e.dataTransfer.getData('application/x-note-id');
+          if (noteId) {
+            const note = appState.notes.find(n => n.id === noteId);
+            if (note) {
+              note.archived = true;
+              note.visible = false;
+              saveState(true);
+              renderApp(true);
+            }
+          }
+        });
+        recycleBinBtn.addEventListener('click', () => {
+          renderRecycleBinModal();
+          if (recycleBinModal) recycleBinModal.classList.remove('hidden');
+        });
+      }
+      if (recycleBinCloseBtn && recycleBinModal) {
+        recycleBinCloseBtn.addEventListener('click', () => recycleBinModal.classList.add('hidden'));
+        recycleBinModal.addEventListener('click', (e) => {
+          if (e.target === recycleBinModal) recycleBinModal.classList.add('hidden');
+        });
+      }
+      if (recycleBinEmptyBtn) {
+        recycleBinEmptyBtn.addEventListener('click', () => {
+          appState.notes = appState.notes.filter(n => !n.archived);
+          saveState(true);
+          renderApp(true);
+          renderRecycleBinModal();
         });
       }
       const btnClearDone = document.getElementById('dock-btn-clear-done');
@@ -2836,29 +2951,123 @@
       }
     }
 
+    function getOrderedMemoPads() {
+      const customPads = Array.isArray(appState.customMemoPads) ? appState.customMemoPads : [];
+      const deletedIds = new Set(Array.isArray(appState.deletedMemoPads) ? appState.deletedMemoPads : []);
+      const allPads = [
+        ...BACKGROUND_PRESETS.filter(p => !deletedIds.has(p.id)).map(p => ({ type: 'preset', id: p.id, preset: p })),
+        ...customPads.map(c => ({ type: 'custom', id: c.id, url: c.url }))
+      ];
+
+      const order = Array.isArray(appState.memoPadOrder) ? appState.memoPadOrder : [];
+      if (order.length === 0) return allPads;
+
+      const padMap = new Map(allPads.map(p => [p.id, p]));
+      const ordered = [];
+      order.forEach(id => {
+        if (padMap.has(id)) {
+          ordered.push(padMap.get(id));
+          padMap.delete(id);
+        }
+      });
+      padMap.forEach(p => ordered.push(p));
+      return ordered;
+    }
+
+    function moveMemoPad(id, direction) {
+      const ordered = getOrderedMemoPads();
+      const idx = ordered.findIndex(p => p.id === id);
+      const targetIdx = idx + direction;
+      if (idx === -1 || targetIdx < 0 || targetIdx >= ordered.length) return;
+      const ids = ordered.map(p => p.id);
+      const [moved] = ids.splice(idx, 1);
+      ids.splice(targetIdx, 0, moved);
+      appState.memoPadOrder = ids;
+      saveState();
+      renderMemoPadsPanel();
+    }
+
+    function deleteMemoPad(pad) {
+      if (pad.type === 'custom') {
+        appState.customMemoPads = (appState.customMemoPads || []).filter(c => c.id !== pad.id);
+      } else {
+        if (!Array.isArray(appState.deletedMemoPads)) appState.deletedMemoPads = [];
+        if (!appState.deletedMemoPads.includes(pad.id)) {
+          appState.deletedMemoPads.push(pad.id);
+        }
+      }
+      if (Array.isArray(appState.memoPadOrder)) {
+        appState.memoPadOrder = appState.memoPadOrder.filter(id => id !== pad.id);
+      }
+      saveState();
+      renderMemoPadsPanel();
+    }
+
+    function addCustomMemoPad(url) {
+      const trimmed = (url || '').trim();
+      if (!trimmed) return;
+      if (!Array.isArray(appState.customMemoPads)) appState.customMemoPads = [];
+      const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      appState.customMemoPads.push({ id, url: trimmed });
+      if (Array.isArray(appState.memoPadOrder)) {
+        appState.memoPadOrder.push(id);
+      }
+      saveState();
+      renderMemoPadsPanel();
+    }
+
     function renderMemoPadsPanel() {
       const listEl = document.getElementById('memo-pads-list');
       if (!listEl) return;
 
       listEl.innerHTML = '';
+      const pads = getOrderedMemoPads();
 
-      BACKGROUND_PRESETS.forEach(preset => {
+      pads.forEach((pad, idx) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'w-16 h-16 xl:w-full xl:h-auto xl:aspect-square flex-shrink-0 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform relative group';
         itemEl.draggable = true;
-        itemEl.dataset.presetId = preset.id;
+        itemEl.dataset.presetId = pad.id;
+
+        const previewHtml = pad.type === 'custom'
+          ? `<div class="absolute inset-0 rounded-md shadow-sm border border-zinc-700/50 overflow-hidden bg-zinc-800 bg-cover bg-center" style="background-image: url('${escapeHtml(pad.url)}');"></div>`
+          : `<div class="absolute inset-0 rounded-md shadow-sm border border-zinc-700/50 overflow-hidden" style="background-color: ${pad.preset.color};">
+              ${pad.preset.renderSvg('memo-pad-' + pad.preset.id)}
+             </div>`;
 
         itemEl.innerHTML = `
-          <div class="absolute inset-0 rounded-md shadow-sm border border-zinc-700/50 overflow-hidden" style="background-color: ${preset.color};">
-            ${preset.renderSvg('memo-pad-' + preset.id)}
-          </div>
+          ${previewHtml}
           <div class="hidden xl:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 items-center justify-center transition-opacity rounded-md pointer-events-none">
             <span class="text-xs font-semibold text-white drop-shadow-md">+ Add</span>
           </div>
+          <div class="absolute top-1 left-1 right-1 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div class="flex gap-0.5">
+              <button type="button" class="memo-move-left px-1 py-0.5 bg-zinc-900/85 hover:bg-zinc-800 text-zinc-200 rounded text-[9px] leading-none disabled:opacity-30" title="Move backward" ${idx === 0 ? 'disabled' : ''}>◀</button>
+              <button type="button" class="memo-move-right px-1 py-0.5 bg-zinc-900/85 hover:bg-zinc-800 text-zinc-200 rounded text-[9px] leading-none disabled:opacity-30" title="Move forward" ${idx === pads.length - 1 ? 'disabled' : ''}>▶</button>
+            </div>
+            <button type="button" class="memo-delete px-1 py-0.5 bg-red-900/85 hover:bg-red-700 text-white rounded text-[9px] leading-none" title="Delete memo pad">✕</button>
+          </div>
         `;
 
+        itemEl.querySelector('.memo-move-left').addEventListener('click', (e) => {
+          e.stopPropagation();
+          moveMemoPad(pad.id, -1);
+        });
+        itemEl.querySelector('.memo-move-right').addEventListener('click', (e) => {
+          e.stopPropagation();
+          moveMemoPad(pad.id, 1);
+        });
+        itemEl.querySelector('.memo-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteMemoPad(pad);
+        });
+
         itemEl.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', preset.id);
+          if (pad.type === 'custom') {
+            e.dataTransfer.setData('application/x-custom-bg-url', pad.url);
+          } else {
+            e.dataTransfer.setData('text/plain', pad.id);
+          }
           e.dataTransfer.effectAllowed = 'copy';
           itemEl.classList.add('opacity-50');
         });
@@ -2868,11 +3077,146 @@
         });
 
         itemEl.addEventListener('click', (e) => {
-          const newNote = addNewNote({ bgPresetId: preset.id, text: '' });
+          const newNote = pad.type === 'custom'
+            ? addNewNote({ customBgUrl: pad.url, text: '' })
+            : addNewNote({ bgPresetId: pad.id, text: '' });
           openPopupForNote(newNote, e.clientX, e.clientY);
         });
 
         listEl.appendChild(itemEl);
+      });
+    }
+
+    (function initMemoPadCustomControls() {
+      const fileInput = document.getElementById('memo-custom-bg-file');
+      const urlInput = document.getElementById('memo-custom-bg-url');
+      const addBtn = document.getElementById('memo-custom-bg-add');
+      const resetBtn = document.getElementById('memo-pads-reset-btn');
+
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            if (ev.target && ev.target.result) {
+              addCustomMemoPad(ev.target.result);
+              fileInput.value = '';
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (addBtn && urlInput) {
+        addBtn.addEventListener('click', () => {
+          if (urlInput.value.trim()) {
+            addCustomMemoPad(urlInput.value);
+            urlInput.value = '';
+          }
+        });
+        urlInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && urlInput.value.trim()) {
+            addCustomMemoPad(urlInput.value);
+            urlInput.value = '';
+          }
+        });
+      }
+
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          appState.deletedMemoPads = [];
+          appState.memoPadOrder = [];
+          saveState();
+          renderMemoPadsPanel();
+        });
+      }
+    })();
+
+    function renderDeskAndBin() {
+      const deskList = document.getElementById('desk-notes-list');
+      if (deskList) {
+        deskList.innerHTML = '';
+        const hiddenNotes = appState.notes.filter(n => n.visible === false && !n.archived);
+        if (hiddenNotes.length === 0) {
+          deskList.innerHTML = '<span class="text-xs text-zinc-400 italic select-none">Drag notes here to take them off the overlay without deleting them</span>';
+        } else {
+          hiddenNotes.forEach(note => {
+            const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+            const el = document.createElement('div');
+            el.className = 'w-24 h-24 relative rounded-md shadow-md cursor-grab active:cursor-grabbing hover:scale-105 transition-transform overflow-hidden flex-shrink-0 group';
+            el.draggable = true;
+            el.title = 'Drag onto laptop to show in overlay, or into Recycle Bin to archive. Click to edit.';
+            el.innerHTML = `
+              <div class="absolute inset-0" style="background-color: ${preset.color};">
+                ${preset.renderSvg('desk-' + note.id)}
+              </div>
+              <div class="relative z-10 p-2 text-[10px] leading-tight font-medium break-words overflow-hidden h-full" style="color: ${note.textColor || preset.textColor};">
+                ${escapeHtml(note.mode === 'tasks' ? (note.taskTitle || 'Checklist') : (note.text || 'Empty Note'))}
+              </div>
+            `;
+            el.addEventListener('dragstart', (e) => {
+              e.dataTransfer.setData('application/x-note-id', note.id);
+              e.dataTransfer.effectAllowed = 'move';
+              el.classList.add('opacity-50');
+            });
+            el.addEventListener('dragend', () => {
+              el.classList.remove('opacity-50');
+            });
+            el.addEventListener('click', (e) => {
+              openPopupForNote(note, e.clientX, e.clientY);
+            });
+            deskList.appendChild(el);
+          });
+        }
+      }
+
+      const binCountEl = document.getElementById('recycle-bin-count');
+      if (binCountEl) {
+        const archivedCount = appState.notes.filter(n => n.archived).length;
+        binCountEl.textContent = archivedCount;
+        binCountEl.classList.toggle('hidden', archivedCount === 0);
+      }
+    }
+
+    function renderRecycleBinModal() {
+      const listEl = document.getElementById('recycle-bin-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      const archivedNotes = appState.notes.filter(n => n.archived);
+      if (archivedNotes.length === 0) {
+        listEl.innerHTML = '<div class="text-center py-8 text-xs text-zinc-500">Recycle Bin is empty.</div>';
+        return;
+      }
+      archivedNotes.forEach(note => {
+        const preset = BACKGROUND_PRESETS.find(p => p.id === note.bgPresetId) || BACKGROUND_PRESETS[0];
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-3 p-3 rounded-xl bg-zinc-800/70 border border-zinc-700/60';
+        const previewText = note.mode === 'tasks' ? (note.taskTitle || 'Checklist') : (note.text || 'Empty Note');
+        row.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded border border-zinc-600 flex-shrink-0" style="background-color: ${preset.color};"></div>
+            <div class="text-xs text-zinc-200 truncate">${escapeHtml(previewText)}</div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button type="button" data-action="restore" class="px-2.5 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors">Restore</button>
+            <button type="button" data-action="delete" class="px-2.5 py-1 text-xs font-medium bg-zinc-700 hover:bg-rose-600 text-zinc-200 hover:text-white rounded-md transition-colors">Delete</button>
+          </div>
+        `;
+        row.querySelector('[data-action="restore"]').addEventListener('click', () => {
+          note.archived = false;
+          note.visible = false;
+          saveState(true);
+          renderApp(true);
+          renderRecycleBinModal();
+        });
+        row.querySelector('[data-action="delete"]').addEventListener('click', () => {
+          appState.notes = appState.notes.filter(n => n.id !== note.id);
+          saveState(true);
+          renderApp(true);
+          renderRecycleBinModal();
+        });
+        listEl.appendChild(row);
       });
     }
 
@@ -2881,6 +3225,7 @@
       if (currentViewMode === 'dock' && refreshDockList) {
         renderDockView();
         renderMemoPadsPanel();
+        renderDeskAndBin();
       }
     }
 
